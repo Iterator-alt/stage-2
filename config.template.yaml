@@ -1,0 +1,160 @@
+# DataTobiz Brand Monitoring System - Configuration Template
+# Copy this file to config.yaml and fill in your actual values
+
+# LLM Configurations
+llm_configs:
+  openai:
+    name: "openai"
+    api_key: "YOUR_OPENAI_API_KEY_HERE"  # Replace with actual key
+    model: "gpt-3.5-turbo"
+    max_tokens: 1000
+    temperature: 0.1
+    timeout: 30
+
+  perplexity:
+    name: "perplexity"
+    api_key: "YOUR_PERPLEXITY_API_KEY_HERE"  # Replace with actual key
+    model: "sonar"
+    max_tokens: 1000
+    temperature: 0.1
+    timeout: 30
+
+  gemini:
+    name: "gemini"
+    api_key: "YOUR_GEMINI_API_KEY_HERE"  # Replace with actual key
+    model: "gemini-pro"
+    max_tokens: 1000
+    temperature: 0.1
+    timeout: 30
+
+# Google Sheets Configuration
+google_sheets:
+  credentials_file: "credentials.json"  # Will be created from Streamlit secrets
+  spreadsheet_id: "YOUR_SPREADSHEET_ID_HERE"  # Replace with actual ID
+  worksheet_name: "Brand_Monitoring_New"
+  auto_setup_headers: true
+  batch_size: 100
+  enable_validation: true
+
+# Brand Configuration
+brand:
+  target_brand: "DataTobiz"
+  brand_variations:
+    - "DataTobiz"
+    - "Data Tobiz"
+    - "data tobiz"
+    - "DATATOBIZ"
+    - "DataToBiz"
+    - "Data-Tobiz"
+    - "datatobiz.com"
+  case_sensitive: false
+  partial_match: true
+
+# Workflow Configuration
+workflow:
+  max_retries: 3
+  retry_delay: 1.0
+  parallel_execution: true
+  timeout_per_agent: 60
+  log_level: "INFO"
+
+# Stage 2 Configuration
+stage2:
+  enable_ranking_detection: true
+  enable_cost_tracking: true
+  enable_analytics: true
+  
+  ranking_detection:
+    max_position: 20
+    min_confidence: 0.6
+    enable_ordinal_detection: true
+    enable_list_detection: true
+    enable_keyword_detection: true
+    enable_numeric_detection: true
+
+# Enhanced Brand Configuration
+enhanced_brand:
+  context_analysis:
+    context_window: 200
+    enable_sentiment_analysis: false
+    positive_keywords:
+      - "excellent"
+      - "outstanding"
+      - "innovative"
+      - "reliable"
+      - "powerful"
+      - "comprehensive"
+      - "award-winning"
+      - "recognized"
+      - "trusted"
+      - "proven"
+    negative_keywords:
+      - "poor"
+      - "bad"
+      - "disappointing"
+      - "limited"
+      - "lacking"
+      - "outdated"
+      - "problematic"
+      - "difficult"
+      - "complex"
+      - "expensive"
+  
+  structure_detection:
+    detect_in_lists: true
+    detect_near_headings: true
+    detect_comparisons: true
+
+# Agents Configuration
+agents:
+  execution:
+    default_mode: "parallel"
+    enable_health_checks: true
+    health_check_timeout: 10
+    enable_performance_monitoring: true
+  
+  retry_strategies:
+    backoff_multiplier: 2.0
+    max_retry_delay: 30
+    per_agent_strategies: true
+
+# Storage Configuration
+storage:
+  export:
+    enable_auto_export: false
+    formats: ["json", "csv"]
+    frequency: "weekly"
+    export_path: "data/exports/"
+
+# Notifications Configuration
+notifications:
+  enabled: false
+  email_enabled: false
+  slack_enabled: false
+  webhook_enabled: false
+
+# Analytics Configuration
+analytics:
+  enabled: true
+  metrics:
+    - "detection_rate"
+    - "ranking_positions"
+    - "confidence_scores"
+    - "execution_times"
+    - "cost_tracking"
+    - "agent_performance"
+  daily_reports: false
+  weekly_summaries: true
+  trend_analysis: true
+  retention_days: 365
+
+# Security Configuration
+security:
+  validate_api_keys: true
+  enable_rate_limiting: true
+  rate_limits:
+    openai: 50
+    perplexity: 20
+    gemini: 60
+  log_requests: false
+  mask_api_keys: true
