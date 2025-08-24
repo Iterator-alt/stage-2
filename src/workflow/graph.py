@@ -775,6 +775,27 @@ class EnhancedBrandMonitoringWorkflow:
             return {"error": "Analytics engine not available"}
         
         return await self.analytics_engine.analyze_workflow_results(workflow_state)
+    
+    async def cleanup(self):
+        """Clean up workflow resources."""
+        logger.info("🧹 Cleaning up enhanced workflow resources...")
+        
+        # Clean up agents
+        for agent_name, agent in self.agents.items():
+            try:
+                if hasattr(agent, 'cleanup'):
+                    await agent.cleanup()
+            except Exception as e:
+                logger.warning(f"Failed to cleanup agent {agent_name}: {str(e)}")
+        
+        # Clean up storage manager
+        if self.storage_manager:
+            try:
+                await self.storage_manager.cleanup()
+            except Exception as e:
+                logger.warning(f"Failed to cleanup storage manager: {str(e)}")
+        
+        logger.info("✅ Enhanced workflow cleanup completed")
 
 # Backward compatibility
 BrandMonitoringWorkflow = EnhancedBrandMonitoringWorkflow
