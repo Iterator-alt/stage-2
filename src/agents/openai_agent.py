@@ -221,6 +221,11 @@ Please provide specific, factual information rather than general statements.
             'temperature': self.temperature,
             'timeout': self.config.timeout
         }
+    
+    async def cleanup(self):
+        """Clean up agent resources."""
+        # OpenAI client doesn't need explicit cleanup, but we'll keep the interface consistent
+        pass
 
 # Utility function for creating OpenAI agents
 def create_openai_agent(name: str = "openai", api_key: str = None, model: str = "gpt-4") -> OpenAIAgent:

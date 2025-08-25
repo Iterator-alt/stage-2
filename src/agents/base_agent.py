@@ -224,6 +224,11 @@ Please provide a detailed response with specific company names and their capabil
             True if healthy, False otherwise
         """
         try:
+            # If the agent has a test_connection method, use it
+            if hasattr(self, 'test_connection'):
+                return await self.test_connection()
+            
+            # Fallback to basic health check
             test_query = "test query"
             test_prompt = self._create_search_prompt(test_query)
             
@@ -235,6 +240,9 @@ Please provide a detailed response with specific company names and their capabil
             
             return bool(response and len(response.strip()) > 0)
             
+        except asyncio.TimeoutError:
+            logger.error(f"Health check timed out for agent {self.name}")
+            return False
         except Exception as e:
             logger.error(f"Health check failed for agent {self.name}: {str(e)}")
             return False

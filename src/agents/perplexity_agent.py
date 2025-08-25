@@ -55,7 +55,12 @@ class PerplexityAgent(BaseAgent):
     async def _close_session(self):
         """Close HTTP session if it exists."""
         if self._session and not self._session.closed:
-            await self._session.close()
+            try:
+                await self._session.close()
+            except Exception as e:
+                logger.warning(f"Error closing Perplexity session: {str(e)}")
+            finally:
+                self._session = None
     
     def _create_search_prompt(self, query: str) -> str:
         """
@@ -224,7 +229,8 @@ Search for recent articles, reviews, and industry reports to ensure the most cur
             async with session.post(
                 f"{self.api_base}/chat/completions",
                 headers=headers,
-                json=payload
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=15)
             ) as response:
                 
                 if response.status == 200:
@@ -234,8 +240,16 @@ Search for recent articles, reviews, and industry reports to ensure the most cur
                         response_data['choices'][0].get('message', {}).get('content')
                     )
                 else:
+                    error_text = await response.text()
+                    logger.error(f"Perplexity API error {response.status}: {error_text}")
                     return False
                     
+        except asyncio.TimeoutError:
+            logger.error("Perplexity connection test timed out")
+            return False
+        except aiohttp.ClientError as e:
+            logger.error(f"Perplexity connection test failed with client error: {str(e)}")
+            return False
         except Exception as e:
             logger.error(f"Perplexity connection test failed: {str(e)}")
             return False
@@ -257,6 +271,22 @@ Search for recent articles, reviews, and industry reports to ensure the most cur
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
+        await self._close_session()
+    
+    def __del__(self):
+        """Destructor to ensure session cleanup."""
+        if hasattr(self, '_session') and self._session and not self._session.closed:
+            try:
+                # Schedule session cleanup if event loop is running
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(self._close_session())
+            except (RuntimeError, AttributeError):
+                # Event loop not available, session will be cleaned up by garbage collector
+                pass
+    
+    async def cleanup(self):
+        """Clean up agent resources."""
         await self._close_session()
 
 # Utility function for creating Perplexity agents
