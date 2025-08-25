@@ -78,13 +78,13 @@ class OpenAIAgent(BaseAgent):
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
+                    {"role": "user", "content": prompt}
                 ],
                 max_tokens=self.max_tokens,
                 temperature=self.temperature,
+                top_p=1.0,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
                 timeout=self.config.timeout
             )
             
