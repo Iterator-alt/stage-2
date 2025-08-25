@@ -103,9 +103,9 @@ class PerplexityAgent(BaseAgent):
                 ],
                 "max_tokens": self.max_tokens,
                 "temperature": self.temperature,
-                "search_domain_filter": ["perplexity.ai"],  # Enable web search
+                "search_domain_filter": [],  # Allow all domains for broader search
                 "return_citations": True,
-                "search_recency_filter": "day"  # Focus on very recent information
+                "search_recency_filter": "week"  # Search more broadly in time
             }
             
             logger.debug(f"Making Perplexity request for query: {query}")
