@@ -99,16 +99,13 @@ class PerplexityAgent(BaseAgent):
             payload = {
                 "model": self.model,
                 "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
+                    {"role": "user", "content": prompt}
                 ],
                 "max_tokens": self.max_tokens,
                 "temperature": self.temperature,
-                "search_domain_filter": ["perplexity.ai"],  # Allow web search
+                "search_domain_filter": ["perplexity.ai"],  # Enable web search
                 "return_citations": True,
-                "search_recency_filter": "month"  # Focus on recent information
+                "search_recency_filter": "day"  # Focus on very recent information
             }
             
             logger.debug(f"Making Perplexity request for query: {query}")
