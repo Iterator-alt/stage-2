@@ -19,9 +19,10 @@ from src.workflow.state import (
     state_to_dict, dict_to_state, update_agent_result, finalize_query_state
 )
 from src.agents.base_agent import BaseAgent, AgentFactory
-from src.agents.openai_agent import OpenAIAgent
-from src.agents.perplexity_agent import PerplexityAgent
-from src.agents.gemini_agent import GeminiAgent  # New for Stage 2
+from src.agents.openai_agent import create_openai_agent
+from src.agents.perplexity_agent import create_perplexity_agent
+from src.agents.gemini_agent import create_gemini_agent
+from src.agents.web_search_agent import create_web_search_agent
 from src.storage.google_sheets import EnhancedGoogleSheetsManager
 from src.analytics.analytics_engine import BrandMonitoringAnalytics, generate_comprehensive_report
 from src.config.settings import get_settings
@@ -60,8 +61,16 @@ class EnhancedBrandMonitoringWorkflow:
             True if initialization successful, False otherwise
         """
         try:
-            # Initialize agents (now supports 3 agents)
-            await self._initialize_enhanced_agents()
+            # Initialize agents
+            agent_factories = {
+                "openai": create_openai_agent,
+                "perplexity": create_perplexity_agent,
+                "gemini": create_gemini_agent,
+                "web_search": create_web_search_agent
+            }
+            
+            # Initialize enhanced agents
+            await self._initialize_enhanced_agents(agent_factories)
             
             # Initialize enhanced storage
             await self._initialize_enhanced_storage()
@@ -79,76 +88,50 @@ class EnhancedBrandMonitoringWorkflow:
             logger.error(f"Enhanced workflow initialization failed: {str(e)}")
             return False
     
-    async def _initialize_enhanced_agents(self) -> bool:
+    async def _initialize_enhanced_agents(self, agent_factories: Dict[str, Callable]) -> bool:
         """Initialize all configured agents including Gemini for Stage 2."""
         logger.info("Initializing enhanced agents (Stage 2)...")
         
         success_count = 0
         total_agents = 0
         
-        # Initialize OpenAI agent if configured
-        if "openai" in self.config.llm_configs:
+        for agent_name, factory_func in agent_factories.items():
+            if agent_name not in self.config.llm_configs:
+                continue
+                
             total_agents += 1
             try:
-                openai_config = self.config.llm_configs["openai"]
-                agent = OpenAIAgent("openai", openai_config)
+                agent_config = self.config.llm_configs[agent_name]
+                agent = factory_func(agent_name, agent_config)
                 
-                # Always add the agent for now
-                self.agents["openai"] = agent
-                success_count += 1
-                logger.info("OpenAI agent initialized successfully")
-                    
-            except Exception as e:
-                logger.error(f"Failed to initialize OpenAI agent: {str(e)}")
-        
-        # Initialize Perplexity agent if configured
-        if "perplexity" in self.config.llm_configs:
-            total_agents += 1
-            try:
-                perplexity_config = self.config.llm_configs["perplexity"]
-                agent = PerplexityAgent("perplexity", perplexity_config)
-                
-                # Test health check
-                if await agent.test_connection():
-                    self.agents["perplexity"] = agent
-                    success_count += 1
-                    logger.info("Perplexity agent initialized successfully")
+                # Test health check for agents that support it
+                if hasattr(agent, 'test_connection'):
+                    if await agent.test_connection():
+                        self.agents[agent_name] = agent
+                        success_count += 1
+                        logger.info(f"Agent '{agent_name}' initialized successfully")
+                    else:
+                        logger.error(f"Agent '{agent_name}' failed health check; skipping")
                 else:
-                    logger.error("Perplexity agent failed health check; skipping")
-                    
-            except Exception as e:
-                logger.error(f"Failed to initialize Perplexity agent: {str(e)}")
-        
-        # Initialize Gemini agent if configured (NEW for Stage 2)
-        if "gemini" in self.config.llm_configs:
-            total_agents += 1
-            try:
-                gemini_config = self.config.llm_configs["gemini"]
-                agent = GeminiAgent("gemini", gemini_config)
-                
-                # Test health check
-                if await agent.test_connection():
-                    self.agents["gemini"] = agent
+                    # For agents without health check, add them directly
+                    self.agents[agent_name] = agent
                     success_count += 1
-                    logger.info("Gemini agent initialized successfully")
-                else:
-                    logger.error("Gemini agent failed health check; skipping")
+                    logger.info(f"Agent '{agent_name}' initialized successfully")
                     
             except Exception as e:
-                logger.error(f"Failed to initialize Gemini agent: {str(e)}")
+                logger.error(f"Failed to initialize agent '{agent_name}': {str(e)}")
         
         if success_count == 0:
-            logger.warning("No agents successfully initialized; workflow cannot proceed")
+            logger.error("No agents initialized successfully")
             return False
         
         logger.info(f"Initialized {success_count}/{total_agents} agents successfully")
         logger.info(f"Available agents: {list(self.agents.keys())}")
         
-        # Log Stage 2 capabilities
-        if success_count >= 3:
-            logger.info("🎉 Full Stage 2 capability with 3 agents!")
-        elif success_count >= 2:
-            logger.info("✅ Multi-agent capability with 2 agents")
+        if success_count >= 2:
+            logger.info("✅ Multi-agent capability with {} agents".format(success_count))
+        else:
+            logger.warning("⚠️ Limited capability with only {} agent".format(success_count))
         
         return True
     
