@@ -55,25 +55,7 @@ class OpenAIAgent(BaseAgent):
         Returns:
             Formatted prompt optimized for OpenAI models
         """
-        return f"""
-You are a research assistant helping to analyze the competitive landscape for data analytics and business intelligence tools.
-
-User Query: "{query}"
-
-Please provide a comprehensive response that includes:
-
-1. A list of the top companies, tools, and platforms that match this query
-2. Brief descriptions of what each company/tool offers
-3. Key features and capabilities
-4. Target markets and use cases
-5. Any notable partnerships or integrations
-
-Focus on being thorough and including both well-known market leaders and emerging players. Include specific company names and be detailed about their offerings.
-
-When discussing companies, please mention their full names and any alternative names they might be known by. Include both established enterprises and innovative startups in your response.
-
-Please provide specific, factual information rather than general statements.
-"""
+        return query
     
     async def _make_llm_request(self, query: str) -> str:
         """
@@ -96,10 +78,6 @@ Please provide specific, factual information rather than general statements.
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a knowledgeable research assistant specializing in data analytics, business intelligence, and enterprise software. Provide detailed, accurate information about companies and tools in these sectors."
-                    },
                     {
                         "role": "user",
                         "content": prompt

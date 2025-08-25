@@ -72,24 +72,7 @@ class PerplexityAgent(BaseAgent):
         Returns:
             Formatted prompt optimized for Perplexity's web search capabilities
         """
-        return f"""
-Search the web and provide current information about: "{query}"
-
-Please include:
-
-1. Current market leaders and top-rated companies/tools in this space
-2. Recent developments, new products, or industry changes
-3. Comparative analysis of different solutions
-4. User reviews and expert opinions from recent sources
-5. Any emerging companies or innovative solutions
-6. Market trends and competitive landscape updates
-
-Focus on providing up-to-date, comprehensive information that includes specific company names, product names, and detailed descriptions. Include both established market leaders and emerging players.
-
-Please cite sources where possible and ensure the information is current and accurate. Include specific details about each company's offerings, target markets, and key differentiators.
-
-Search for recent articles, reviews, and industry reports to ensure the most current information.
-"""
+        return query
     
     async def _make_llm_request(self, query: str) -> str:
         """
@@ -116,10 +99,6 @@ Search for recent articles, reviews, and industry reports to ensure the most cur
             payload = {
                 "model": self.model,
                 "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are a research assistant with access to current web information. Provide detailed, up-to-date information about companies, tools, and market trends in data analytics and business intelligence. Always search for the most recent information available."
-                    },
                     {
                         "role": "user",
                         "content": prompt

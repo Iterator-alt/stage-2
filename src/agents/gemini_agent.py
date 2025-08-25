@@ -76,38 +76,7 @@ class GeminiAgent(BaseAgent):
         Returns:
             Formatted prompt optimized for Gemini models
         """
-        return f"""
-You are an expert market research analyst specializing in data analytics, business intelligence, and enterprise software solutions. Your task is to provide comprehensive information about companies and tools in response to user queries.
-
-**User Query:** "{query}"
-
-**Your Task:**
-Please provide a detailed, structured response that includes:
-
-1. **Top Companies/Tools:** List the leading companies, platforms, and tools that directly match this query
-2. **Market Analysis:** Brief overview of the competitive landscape
-3. **Company Details:** For each major player, include:
-   - Company name and any common variations
-   - Key products/services offered
-   - Target market and use cases
-   - Notable features or differentiators
-   - Market position and reputation
-
-4. **Emerging Players:** Include both established market leaders and innovative emerging companies
-5. **Industry Context:** Brief context about trends and developments in this space
-
-**Guidelines:**
-- Be specific with company names and product names
-- Include both large enterprises and specialized vendors
-- Mention any notable partnerships, acquisitions, or market movements
-- Focus on factual, current information
-- Organize information clearly and logically
-- Include both commercial and open-source solutions where relevant
-
-**Format:** Structure your response clearly with headings and bullet points for easy reading.
-
-Please provide comprehensive, accurate information that would help someone understand the complete competitive landscape for this query.
-"""
+        return query
     
     async def _make_llm_request(self, query: str) -> str:
         """

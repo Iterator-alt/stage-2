@@ -76,15 +76,7 @@ class BaseAgent(ABC):
         Returns:
             Formatted prompt for the LLM
         """
-        return f"""
-Please search for and provide information about: "{query}"
-
-Focus on providing comprehensive results that include company names, tools, and platforms related to this query. Please include any mentions of data analytics companies, business intelligence tools, or related software platforms.
-
-Include specific company names and detailed descriptions of their offerings. I'm particularly interested in understanding the competitive landscape and key players in this space.
-
-Please provide a detailed response with specific company names and their capabilities.
-"""
+        return query
     
     async def execute(self, query: str, max_retries: Optional[int] = None) -> AgentResult:
         """
