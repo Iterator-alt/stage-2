@@ -455,7 +455,7 @@ class EnhancedBrandMonitoringWorkflow:
                 weighted_confidence = sum(c * w for c, w in zip(confidences, weights)) / sum(weights)
                 query_state.consensus_confidence = weighted_confidence
             
-            # Stage 2: Enhanced ranking analysis
+            # Enhanced ranking analysis
             if self.config.stage2.enable_ranking_detection:
                 rankings = []
                 ranking_sources = []

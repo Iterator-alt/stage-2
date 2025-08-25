@@ -81,6 +81,7 @@ class QueryState(BaseModel):
 	# Stage 2 preparation
 	best_ranking: Optional[int] = Field(default=None, description="Best ranking found across agents")
 	ranking_sources: List[str] = Field(default_factory=list, description="Agents that found rankings")
+	ranking_confidence: Optional[float] = Field(default=None, description="Confidence in ranking detection")
 	
 	# Analysis field for Stage 2
 	analysis: Optional[Dict[str, Any]] = Field(default=None, description="Query-level analysis results")

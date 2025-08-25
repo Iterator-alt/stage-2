@@ -208,9 +208,11 @@ class EnhancedBrandDetector:
         
         # Enhanced ranking detection for Stage 2
         if include_ranking:
-            ranking_info = self._detect_advanced_ranking(text, matches)
-            result.ranking_position = ranking_info.get('position')
-            result.ranking_context = ranking_info.get('context')
+            # Temporarily disabled to focus on core brand detection
+            # ranking_info = self._detect_advanced_ranking(text, matches)
+            # result.ranking_position = ranking_info.get('position')
+            # result.ranking_context = ranking_info.get('context')
+            pass
         
         return result
     

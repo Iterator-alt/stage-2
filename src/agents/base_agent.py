@@ -118,12 +118,18 @@ Please provide a detailed response with specific company names and their capabil
                 raw_response = await self._make_llm_request(query)
                 result.raw_response = raw_response
                 
+                # Debug: Log the raw response for troubleshooting
+                logger.debug(f"Agent {self.name} raw response: {raw_response[:500]}...")
+                
                 # Perform brand detection
                 brand_detection = self.brand_detector.detect_brand(
                     raw_response, 
                     include_ranking=self.settings.enable_ranking_detection
                 )
                 result.brand_detection = brand_detection
+                
+                # Debug: Log brand detection results
+                logger.debug(f"Agent {self.name} brand detection: found={brand_detection.found}, confidence={brand_detection.confidence}, matches={brand_detection.matches}")
                 
                 # Calculate execution time
                 execution_time = time.time() - start_time
