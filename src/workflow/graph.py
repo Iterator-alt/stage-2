@@ -514,7 +514,7 @@ class EnhancedBrandMonitoringWorkflow:
             }
             
             # Store analysis in query state
-            if not hasattr(query_state, 'analysis'):
+            if query_state.analysis is None:
                 query_state.analysis = {}
             query_state.analysis.update(query_analysis)
             
@@ -634,7 +634,11 @@ class EnhancedBrandMonitoringWorkflow:
         # Generate comprehensive analytics if enabled
         if self.config.stage2.enable_analytics and self.analytics_engine:
             try:
-                analytics_report = await generate_comprehensive_report(workflow_state)
+                # Check if the function exists before calling it
+                if hasattr(self.analytics_engine, 'generate_comprehensive_report'):
+                    analytics_report = await self.analytics_engine.generate_comprehensive_report(workflow_state)
+                else:
+                    analytics_report = await self.analytics_engine.analyze_workflow_results(workflow_state)
                 workflow_state.analytics_report = analytics_report
                 logger.info("Comprehensive analytics report generated")
             except Exception as e:

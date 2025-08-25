@@ -81,6 +81,9 @@ class QueryState(BaseModel):
 	# Stage 2 preparation
 	best_ranking: Optional[int] = Field(default=None, description="Best ranking found across agents")
 	ranking_sources: List[str] = Field(default_factory=list, description="Agents that found rankings")
+	
+	# Analysis field for Stage 2
+	analysis: Optional[Dict[str, Any]] = Field(default=None, description="Query-level analysis results")
 
 class WorkflowState(BaseModel):
 	"""Main state object for the entire workflow execution."""
@@ -115,6 +118,9 @@ class WorkflowState(BaseModel):
 	
 	# Configuration and context
 	config_snapshot: Optional[Dict[str, Any]] = Field(default=None, description="Configuration used")
+	
+	# Analytics report for the entire workflow
+	analytics_report: Optional[Dict[str, Any]] = Field(default=None, description="Aggregated analytics report")
 	
 	def add_query_state(self, query: str, query_state: QueryState):
 		"""Add a query state to the workflow."""

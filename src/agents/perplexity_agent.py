@@ -210,40 +210,40 @@ Search for recent articles, reviews, and industry reports to ensure the most cur
             True if connection is successful, False otherwise
         """
         try:
-            session = await self._get_session()
-            
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            
-            payload = {
-                "model": self.model,
-                "messages": [
-                    {"role": "user", "content": "Hello, this is a connection test."}
-                ],
-                "max_tokens": 10,
-                "temperature": 0
-            }
-            
-            async with session.post(
-                f"{self.api_base}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=15)
-            ) as response:
+            # Create a new session for the test to avoid event loop issues
+            timeout = aiohttp.ClientTimeout(total=15)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                }
                 
-                if response.status == 200:
-                    response_data = await response.json()
-                    return bool(
-                        response_data.get('choices') and 
-                        response_data['choices'][0].get('message', {}).get('content')
-                    )
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Perplexity API error {response.status}: {error_text}")
-                    return False
+                payload = {
+                    "model": self.model,
+                    "messages": [
+                        {"role": "user", "content": "Hello, this is a connection test."}
+                    ],
+                    "max_tokens": 10,
+                    "temperature": 0
+                }
+                
+                async with session.post(
+                    f"{self.api_base}/chat/completions",
+                    headers=headers,
+                    json=payload
+                ) as response:
                     
+                    if response.status == 200:
+                        response_data = await response.json()
+                        return bool(
+                            response_data.get('choices') and 
+                            response_data['choices'][0].get('message', {}).get('content')
+                        )
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Perplexity API error {response.status}: {error_text}")
+                        return False
+                        
         except asyncio.TimeoutError:
             logger.error("Perplexity connection test timed out")
             return False
