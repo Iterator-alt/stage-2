@@ -256,7 +256,7 @@ class Settings(BaseSettings):
             merged_llm_configs["openai"] = {
                 "name": "openai",
                 "api_key": openai_key,
-                "model": yaml_openai.get("model", "gpt-5"),  # TEMPORARY: Testing GPT-5
+                "model": yaml_openai.get("model", "gpt-4"),
                 "max_tokens": yaml_openai.get("max_tokens", 1000),
                 "temperature": yaml_openai.get("temperature", 0.1),
                 "timeout": yaml_openai.get("timeout", 30),
@@ -279,7 +279,7 @@ class Settings(BaseSettings):
             merged_llm_configs["perplexity"] = {
                 "name": "perplexity",
                 "api_key": perplexity_key,
-                "model": yaml_ppx.get("model", "sonar-medium-online"),
+                "model": yaml_ppx.get("model", "sonar"),
                 "max_tokens": yaml_ppx.get("max_tokens", 1000),
                 "temperature": yaml_ppx.get("temperature", 0.1),
                 "timeout": yaml_ppx.get("timeout", 30),
@@ -289,7 +289,7 @@ class Settings(BaseSettings):
             merged_llm_configs["perplexity"] = {
                 "name": "perplexity",
                 "api_key": yaml_ppx["api_key"],
-                "model": yaml_ppx.get("model", "sonar-medium-online"),
+                "model": yaml_ppx.get("model", "sonar"),
                 "max_tokens": yaml_ppx.get("max_tokens", 1000),
                 "temperature": yaml_ppx.get("temperature", 0.1),
                 "timeout": yaml_ppx.get("timeout", 30),
