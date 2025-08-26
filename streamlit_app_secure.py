@@ -201,17 +201,38 @@ security:
 def save_credentials_from_secrets():
     """Save Google service account credentials from Streamlit secrets."""
     credentials_json = st.secrets.get('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS', '')
-    if credentials_json:
+    if credentials_json and credentials_json.strip():
         try:
-            # Parse the JSON string and save to file
-            credentials_data = json.loads(credentials_json)
+            # Handle both string and dict formats
+            if isinstance(credentials_json, str):
+                credentials_data = json.loads(credentials_json)
+            else:
+                credentials_data = credentials_json
+            
+            # Validate required fields
+            required_fields = ['type', 'project_id', 'private_key', 'client_email']
+            missing_fields = [field for field in required_fields if field not in credentials_data]
+            
+            if missing_fields:
+                st.error(f"Missing required fields in credentials: {missing_fields}")
+                return False
+            
+            # Save to file
             with open('credentials.json', 'w') as f:
                 json.dump(credentials_data, f, indent=2)
+            
+            st.success("✅ Google Sheets credentials saved successfully")
             return True
+            
+        except json.JSONDecodeError as e:
+            st.error(f"Invalid JSON in credentials: {str(e)}")
+            return False
         except Exception as e:
             st.error(f"Failed to save credentials: {str(e)}")
             return False
-    return False
+    else:
+        st.warning("No Google service account credentials found in secrets")
+        return False
 
 def initialize_system():
     """Initialize the brand monitoring system."""
@@ -221,17 +242,20 @@ def initialize_system():
         with open('config.yaml', 'w') as f:
             f.write(config_content)
         
-        # Save credentials
-        if not save_credentials_from_secrets():
-            st.error("Failed to save Google service account credentials")
-            return None
+        # Save credentials (make this optional)
+        credentials_saved = save_credentials_from_secrets()
+        if not credentials_saved:
+            st.warning("⚠️ Google Sheets credentials not saved - storage will be disabled")
         
         # Initialize API
         api = EnhancedBrandMonitoringAPI('config.yaml')
         success = asyncio.run(api.initialize())
         
         if success:
-            st.success("✅ System initialized successfully!")
+            if credentials_saved:
+                st.success("✅ System initialized successfully with Google Sheets!")
+            else:
+                st.success("✅ System initialized successfully! (Google Sheets disabled)")
             return api
         else:
             st.error("❌ Failed to initialize system")
