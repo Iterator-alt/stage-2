@@ -102,12 +102,7 @@ class EnhancedBrandMonitoringWorkflow:
             total_agents += 1
             try:
                 agent_config = self.config.llm_configs[agent_name]
-                # Extract individual parameters from LLMConfig object
-                agent = factory_func(
-                    name=agent_name,
-                    api_key=agent_config.api_key,
-                    model=agent_config.model
-                )
+                agent = factory_func(agent_name, agent_config)
                 
                 # Test health check for agents that support it
                 if hasattr(agent, 'test_connection'):
@@ -144,43 +139,10 @@ class EnhancedBrandMonitoringWorkflow:
         """Initialize enhanced Google Sheets storage manager."""
         try:
             gs_cfg = self.config.google_sheets
-            
-            # Debug logging
-            logger.info(f"🔍 Debug: Google Sheets config - spreadsheet_id: '{gs_cfg.spreadsheet_id}'")
-            logger.info(f"🔍 Debug: Google Sheets config - credentials_file: '{gs_cfg.credentials_file}'")
-            logger.info(f"🔍 Debug: Google Sheets config - worksheet_name: '{gs_cfg.worksheet_name}'")
-            
-            # Check for credentials file in multiple locations
-            credentials_found = False
-            credentials_path = gs_cfg.credentials_file
-            
-            # Try multiple possible locations
-            possible_paths = [
-                gs_cfg.credentials_file,  # Original path
-                "credentials.json",  # Current directory
-                "src/credentials.json",  # Src directory
-                os.path.join(os.getcwd(), "credentials.json"),  # Absolute path
-                os.path.join(os.getcwd(), "src", "credentials.json")  # Absolute src path
-            ]
-            
-            for path in possible_paths:
-                if os.path.exists(path):
-                    credentials_path = path
-                    credentials_found = True
-                    logger.info(f"Found credentials file at: {path}")
-                    break
-            
-            logger.info(f"🔍 Debug: credentials_found = {credentials_found}")
-            logger.info(f"🔍 Debug: spreadsheet_id check = {bool(gs_cfg.spreadsheet_id)}")
-            
-            if not gs_cfg.spreadsheet_id or not credentials_found:
+            if not gs_cfg.spreadsheet_id or not os.path.exists(gs_cfg.credentials_file):
                 logger.warning("Google Sheets not configured or credentials missing; storage disabled")
-                logger.info(f"Tried paths: {possible_paths}")
                 self.storage_manager = None
                 return True
-            
-            # Update the config with the found path
-            gs_cfg.credentials_file = credentials_path
             
             self.storage_manager = EnhancedGoogleSheetsManager(self.config.google_sheets)
             ok = await self.storage_manager.initialize()

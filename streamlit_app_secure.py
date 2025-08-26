@@ -34,41 +34,26 @@ st.set_page_config(
 
 def check_streamlit_secrets():
     """Check if all required Streamlit secrets are configured."""
-    # Core required secrets (at least one LLM API key)
-    core_secrets = [
+    required_secrets = [
         "OPENAI_API_KEY",
-        "PERPLEXITY_API_KEY"
-    ]
-    
-    # Optional secrets
-    optional_secrets = [
+        "PERPLEXITY_API_KEY", 
         "GEMINI_API_KEY",
         "GOOGLE_SHEETS_SPREADSHEET_ID",
         "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS"
     ]
     
-    # Check if at least one core secret is configured
-    core_configured = any(
-        secret in st.secrets and st.secrets[secret] and st.secrets[secret] != "YOUR_GEMINI_API_KEY_HERE"
-        for secret in core_secrets
-    )
-    
-    # Check missing optional secrets
-    missing_optional = []
-    for secret in optional_secrets:
-        if secret not in st.secrets or not st.secrets[secret] or st.secrets[secret] == "YOUR_GEMINI_API_KEY_HERE":
-            missing_optional.append(secret)
+    missing_secrets = []
+    for secret in required_secrets:
+        if secret not in st.secrets or not st.secrets[secret]:
+            missing_secrets.append(secret)
     
     return {
-        "all_configured": core_configured,
-        "missing_core": [] if core_configured else core_secrets,
-        "missing_optional": missing_optional,
-        "google_sheets_configured": "GOOGLE_SHEETS_SPREADSHEET_ID" in st.secrets and st.secrets["GOOGLE_SHEETS_SPREADSHEET_ID"] and "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS" in st.secrets and st.secrets["GOOGLE_SERVICE_ACCOUNT_CREDENTIALS"]
+        "all_configured": len(missing_secrets) == 0,
+        "missing_secrets": missing_secrets
     }
 
 def create_config_from_secrets():
     """Create config.yaml content from Streamlit secrets."""
-    import os
     config_content = f"""
 # Enhanced DataTobiz Brand Monitoring Configuration (Stage 2)
 # Generated from Streamlit secrets
@@ -78,7 +63,7 @@ llm_configs:
   openai:
     name: "openai"
     api_key: "{st.secrets.get('OPENAI_API_KEY', '')}"
-    model: "gpt-4"
+    model: "gpt-3.5-turbo"
     max_tokens: 1000
     temperature: 0.1
     timeout: 30
@@ -93,7 +78,7 @@ llm_configs:
 
   gemini:
     name: "gemini"
-    api_key: "{st.secrets.get('GEMINI_API_KEY', '') if st.secrets.get('GEMINI_API_KEY', '') != 'YOUR_GEMINI_API_KEY_HERE' else ''}"
+    api_key: "{st.secrets.get('GEMINI_API_KEY', '')}"
     model: "gemini-pro"
     max_tokens: 1000
     temperature: 0.1
@@ -202,73 +187,32 @@ security:
 def save_credentials_from_secrets():
     """Save Google service account credentials from Streamlit secrets."""
     credentials_json = st.secrets.get('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS', '')
-    
-    # Debug logging
-    st.info(f"🔍 Checking Google Sheets credentials...")
-    st.info(f"Credentials present: {bool(credentials_json)}")
-    st.info(f"Credentials length: {len(str(credentials_json)) if credentials_json else 0}")
-    
-    if credentials_json and credentials_json.strip():
+    if credentials_json:
         try:
-            # Handle both string and dict formats
-            if isinstance(credentials_json, str):
-                credentials_data = json.loads(credentials_json)
-            else:
-                credentials_data = credentials_json
-            
-            # Validate required fields
-            required_fields = ['type', 'project_id', 'private_key', 'client_email']
-            missing_fields = [field for field in required_fields if field not in credentials_data]
-            
-            if missing_fields:
-                st.error(f"Missing required fields in credentials: {missing_fields}")
-                return False
-            
-            # Save to file in the current working directory (where backend expects it)
-            import os
-            credentials_path = 'credentials.json'  # Relative path in current directory
-            with open(credentials_path, 'w') as f:
+            # Parse the JSON string and save to file
+            credentials_data = json.loads(credentials_json)
+            with open('credentials.json', 'w') as f:
                 json.dump(credentials_data, f, indent=2)
-            
-            # Also save to src directory for backend access
-            src_credentials_path = os.path.join('src', 'credentials.json')
-            os.makedirs('src', exist_ok=True)  # Ensure src directory exists
-            with open(src_credentials_path, 'w') as f:
-                json.dump(credentials_data, f, indent=2)
-            
-            st.success("✅ Google Sheets credentials saved successfully")
-            st.info(f"📁 Credentials saved to: {credentials_path}")
-            st.info(f"📁 Also saved to: {src_credentials_path}")
-            
-            # Verify files exist
-            if os.path.exists(credentials_path):
-                st.success(f"✅ Main credentials file verified: {credentials_path}")
-            else:
-                st.error(f"❌ Main credentials file not found: {credentials_path}")
-                
-            if os.path.exists(src_credentials_path):
-                st.success(f"✅ Src credentials file verified: {src_credentials_path}")
-            else:
-                st.error(f"❌ Src credentials file not found: {src_credentials_path}")
-            
             return True
-            
-        except json.JSONDecodeError as e:
-            st.error(f"Invalid JSON in credentials: {str(e)}")
-            return False
         except Exception as e:
             st.error(f"Failed to save credentials: {str(e)}")
             return False
-    else:
-        st.warning("No Google service account credentials found in secrets")
-        st.info("Please check your Streamlit secrets configuration")
-        return False
+    return False
 
 def initialize_system():
     """Initialize the brand monitoring system."""
     try:
-        # Initialize API (config should already be generated)
-        st.info("🚀 Initializing EnhancedBrandMonitoringAPI...")
+        # Create config from secrets
+        config_content = create_config_from_secrets()
+        with open('config.yaml', 'w') as f:
+            f.write(config_content)
+        
+        # Save credentials
+        if not save_credentials_from_secrets():
+            st.error("Failed to save Google service account credentials")
+            return None
+        
+        # Initialize API
         api = EnhancedBrandMonitoringAPI('config.yaml')
         success = asyncio.run(api.initialize())
         
@@ -281,9 +225,6 @@ def initialize_system():
             
     except Exception as e:
         st.error(f"❌ Initialization error: {str(e)}")
-        st.error(f"Error type: {type(e).__name__}")
-        import traceback
-        st.error(f"Traceback: {traceback.format_exc()}")
         return None
 
 def display_system_status(api):
@@ -523,72 +464,13 @@ def main():
     # Check secrets configuration
     secrets_status = check_streamlit_secrets()
     
-    # Auto-generate config from secrets if core secrets are configured
-    if secrets_status["all_configured"] and not st.session_state.get("config_generated", False):
-        st.info("🔄 Auto-generating configuration from Streamlit secrets...")
-        try:
-            # Generate config from secrets
-            config_content = create_config_from_secrets()
-            
-            # Always overwrite config.yaml with fresh content from secrets
-            st.info("📝 Writing config.yaml to disk...")
-            with open('config.yaml', 'w') as f:
-                f.write(config_content)
-            st.success("✅ config.yaml created successfully with API keys from secrets")
-            
-            # Verify the file was written and show its content
-            st.info("🔍 Verifying config.yaml content...")
-            try:
-                with open('config.yaml', 'r') as f:
-                    written_content = f.read()
-                st.info(f"📄 Config file size: {len(written_content)} characters")
-                
-                # Check for specific content
-                if 'spreadsheet_id: "1u6xIltHLEO-cfrFwCNVFL2726nRwaAMD90aqAbZKjgQ"' in written_content:
-                    st.success("✅ Google Sheets spreadsheet ID found in config")
-                else:
-                    st.warning("⚠️ Google Sheets spreadsheet ID NOT found in config")
-                
-                # Check for API keys
-                if 'sk-proj-' in written_content:
-                    st.success("✅ OpenAI API key found in config")
-                else:
-                    st.warning("⚠️ OpenAI API key NOT found in config")
-
-                if 'pplx-' in written_content:
-                    st.success("✅ Perplexity API key found in config")
-                else:
-                    st.warning("⚠️ Perplexity API key NOT found in config")
-                    
-            except Exception as e:
-                st.error(f"❌ Error verifying config file: {str(e)}")
-            
-            # Save credentials
-            save_credentials_from_secrets()
-            
-            st.session_state.config_generated = True
-            st.success("✅ Configuration generated successfully from Streamlit secrets!")
-            st.rerun()
-        except Exception as e:
-            st.error(f"❌ Failed to generate configuration: {str(e)}")
-    
     # Sidebar
     st.sidebar.title("⚙️ System Controls")
-    
-    # Display secrets status
-    if secrets_status["all_configured"]:
-        st.sidebar.success("✅ Core secrets configured")
-        if secrets_status["google_sheets_configured"]:
-            st.sidebar.success("✅ Google Sheets configured")
-        else:
-            st.sidebar.warning("⚠️ Google Sheets not configured")
-    else:
-        st.sidebar.error("❌ Core secrets missing")
     
     # Initialize system button
     if st.sidebar.button("🚀 Initialize System", type="primary"):
         if not secrets_status["all_configured"]:
-            st.error("Please configure at least one LLM API key (OpenAI or Perplexity) first.")
+            st.error("Please configure all required secrets first.")
         else:
             with st.spinner("Initializing system..."):
                 api = initialize_system()
@@ -596,32 +478,6 @@ def main():
                     st.session_state.api = api
                     st.session_state.initialized = True
                     st.rerun()
-    
-    # Force refresh config button
-    if st.sidebar.button("🔄 Force Refresh Config"):
-        if not secrets_status["all_configured"]:
-            st.error("Please configure at least one LLM API key (OpenAI or Perplexity) first.")
-        else:
-            with st.spinner("Refreshing configuration..."):
-                try:
-                    # Clear session state
-                    st.session_state.config_generated = False
-                    
-                    # Generate config from secrets
-                    config_content = create_config_from_secrets()
-                    
-                    # Always overwrite config.yaml with fresh content from secrets
-                    with open('config.yaml', 'w') as f:
-                        f.write(config_content)
-                    
-                    # Save credentials
-                    save_credentials_from_secrets()
-                    
-                    st.session_state.config_generated = True
-                    st.success("✅ Configuration refreshed successfully!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Failed to refresh configuration: {str(e)}")
     
     # System status
     if "api" in st.session_state and st.session_state.api:
@@ -646,22 +502,16 @@ def main():
     
     # Main content area
     if not secrets_status["all_configured"]:
-        st.error("⚠️ Please configure at least one LLM API key (OpenAI or Perplexity) in Streamlit Cloud before using the application.")
+        st.error("⚠️ Please configure all required secrets in Streamlit Cloud before using the application.")
         st.info("""
         **Required Secrets:**
-        - `OPENAI_API_KEY`: Your OpenAI API key (required)
-        - `PERPLEXITY_API_KEY`: Your Perplexity API key (required)
-        
-        **Optional Secrets:**
-        - `GEMINI_API_KEY`: Your Google Gemini API key (optional)
-        - `GOOGLE_SHEETS_SPREADSHEET_ID`: Your Google Sheets spreadsheet ID (optional)
-        - `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS`: Your Google service account JSON credentials (optional)
+        - `OPENAI_API_KEY`: Your OpenAI API key
+        - `PERPLEXITY_API_KEY`: Your Perplexity API key  
+        - `GEMINI_API_KEY`: Your Google Gemini API key
+        - `GOOGLE_SHEETS_SPREADSHEET_ID`: Your Google Sheets spreadsheet ID
+        - `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS`: Your Google service account JSON credentials
         """)
         return
-    
-    # Show optional secrets status
-    if secrets_status["missing_optional"]:
-        st.info(f"ℹ️ Optional features not configured: {', '.join(secrets_status['missing_optional'])}")
     
     if not st.session_state.get("initialized", False):
         st.warning("⚠️ Please initialize the system first using the sidebar button.")

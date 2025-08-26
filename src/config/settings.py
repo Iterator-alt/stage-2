@@ -256,7 +256,7 @@ class Settings(BaseSettings):
             merged_llm_configs["openai"] = {
                 "name": "openai",
                 "api_key": openai_key,
-                "model": yaml_openai.get("model", "gpt-4"),
+                "model": yaml_openai.get("model", "gpt-3.5-turbo"),
                 "max_tokens": yaml_openai.get("max_tokens", 1000),
                 "temperature": yaml_openai.get("temperature", 0.1),
                 "timeout": yaml_openai.get("timeout", 30),
@@ -266,7 +266,7 @@ class Settings(BaseSettings):
             merged_llm_configs["openai"] = {
                 "name": "openai",
                 "api_key": yaml_openai["api_key"],
-                "model": yaml_openai.get("model", "gpt-4"),
+                "model": yaml_openai.get("model", "gpt-3.5-turbo"),
                 "max_tokens": yaml_openai.get("max_tokens", 1000),
                 "temperature": yaml_openai.get("temperature", 0.1),
                 "timeout": yaml_openai.get("timeout", 30),
@@ -279,7 +279,7 @@ class Settings(BaseSettings):
             merged_llm_configs["perplexity"] = {
                 "name": "perplexity",
                 "api_key": perplexity_key,
-                "model": yaml_ppx.get("model", "sonar"),
+                "model": yaml_ppx.get("model", "llama-3.1-sonar-small-128k-online"),
                 "max_tokens": yaml_ppx.get("max_tokens", 1000),
                 "temperature": yaml_ppx.get("temperature", 0.1),
                 "timeout": yaml_ppx.get("timeout", 30),
@@ -289,7 +289,7 @@ class Settings(BaseSettings):
             merged_llm_configs["perplexity"] = {
                 "name": "perplexity",
                 "api_key": yaml_ppx["api_key"],
-                "model": yaml_ppx.get("model", "sonar"),
+                "model": yaml_ppx.get("model", "llama-3.1-sonar-small-128k-online"),
                 "max_tokens": yaml_ppx.get("max_tokens", 1000),
                 "temperature": yaml_ppx.get("temperature", 0.1),
                 "timeout": yaml_ppx.get("timeout", 30),
@@ -323,16 +323,7 @@ class Settings(BaseSettings):
     def _process_google_sheets_config(self, config_data: Dict[str, Any]) -> GoogleSheetsConfig:
         """Process Google Sheets configuration."""
         yaml_gs = config_data.get("google_sheets", {}) or {}
-        
-        # Debug logging
-        from src.utils.logger import get_logger
-        logger = get_logger(__name__)
-        logger.info(f"🔍 Debug: config_data keys: {list(config_data.keys())}")
-        logger.info(f"🔍 Debug: yaml_gs content: {yaml_gs}")
-        logger.info(f"🔍 Debug: yaml_gs.get('spreadsheet_id'): {yaml_gs.get('spreadsheet_id')}")
-        
         spreadsheet_id = os.getenv("GOOGLE_SPREADSHEET_ID") or yaml_gs.get("spreadsheet_id", "")
-        logger.info(f"🔍 Debug: Final spreadsheet_id: '{spreadsheet_id}'")
         
         return GoogleSheetsConfig(
             spreadsheet_id=spreadsheet_id,

@@ -725,6 +725,83 @@ class EnhancedGoogleSheetsManager:
             logger.error(f"Failed to get enhanced summary stats: {str(e)}")
             return {}
     
+    async def test_connection(self) -> Dict[str, Any]:
+        """
+        Test the Google Sheets connection and return status information.
+        
+        Returns:
+            Dictionary with connection status and details
+        """
+        try:
+            # Test authentication
+            if not self._client:
+                return {
+                    "success": False,
+                    "error": "Client not initialized",
+                    "details": {}
+                }
+            
+            # Test spreadsheet access
+            if not self._spreadsheet:
+                return {
+                    "success": False,
+                    "error": "Spreadsheet not accessible",
+                    "details": {}
+                }
+            
+            # Test worksheet access
+            if not self._worksheet:
+                return {
+                    "success": False,
+                    "error": "Worksheet not accessible",
+                    "details": {}
+                }
+            
+            # Get basic information
+            loop = asyncio.get_event_loop()
+            
+            # Get spreadsheet title
+            spreadsheet_title = self._spreadsheet.title
+            
+            # Get worksheet title
+            worksheet_title = self._worksheet.title
+            
+            # Get total records (excluding header)
+            all_values = await loop.run_in_executor(None, self._worksheet.get_all_values)
+            total_records = len(all_values) - 1 if len(all_values) > 1 else 0
+            
+            # Get total columns
+            total_columns = len(all_values[0]) if all_values else 0
+            
+            # Test write access by trying to read a cell
+            try:
+                test_cell = await loop.run_in_executor(None, self._worksheet.acell, 'A1')
+                write_access = True
+            except Exception:
+                write_access = False
+            
+            return {
+                "success": True,
+                "error": None,
+                "details": {
+                    "spreadsheet_title": spreadsheet_title,
+                    "worksheet_title": worksheet_title,
+                    "total_records": total_records,
+                    "total_columns": total_columns,
+                    "write_access": write_access,
+                    "spreadsheet_id": self.config.spreadsheet_id,
+                    "worksheet_name": self.config.worksheet_name
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Connection test failed: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "details": {}
+            }
+    
     async def cleanup(self):
         """Cleanup resources."""
         # Google Sheets client doesn't require explicit cleanup

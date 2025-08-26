@@ -89,12 +89,215 @@ if 'initialized' not in st.session_state:
 if 'last_results' not in st.session_state:
     st.session_state.last_results = None
 
+def check_streamlit_secrets():
+    """Check if all required Streamlit secrets are configured."""
+    required_secrets = [
+        "OPENAI_API_KEY",
+        "PERPLEXITY_API_KEY", 
+        "GEMINI_API_KEY",
+        "GOOGLE_SHEETS_SPREADSHEET_ID",
+        "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS"
+    ]
+    
+    missing_secrets = []
+    for secret in required_secrets:
+        if secret not in st.secrets or not st.secrets[secret]:
+            missing_secrets.append(secret)
+    
+    return {
+        "all_configured": len(missing_secrets) == 0,
+        "missing_secrets": missing_secrets
+    }
+
+def create_config_from_secrets():
+    """Create config.yaml content from Streamlit secrets."""
+    config_content = f"""# DataTObiz Brand Monitoring System Configuration
+# ==============================================
+
+# Google Sheets Configuration
+google_sheets:
+  # Google Sheets spreadsheet ID (get from the URL)
+  # Example: https://docs.google.com/spreadsheets/d/YOUR_SPREADSHEET_ID/edit
+  spreadsheet_id: "{st.secrets.get('GOOGLE_SHEETS_SPREADSHEET_ID', '')}"
+  
+  # Worksheet name where data will be stored
+  worksheet_name: "Brand_Monitoring_New"
+  
+  # Path to Google service account credentials JSON file
+  credentials_file: "credentials.json"
+
+# Brand Detection Configuration
+brand:
+  # Primary brand name to search for
+  target_brand: "DataTobiz"
+  
+  # List of brand variations to detect
+  brand_variations:
+    - "DataTobiz"
+    - "Data Tobiz"
+    - "data tobiz"
+    - "DATATOBIZ"
+    - "DataToBiz"
+  
+  # Whether brand detection is case sensitive
+  case_sensitive: false
+  
+  # Whether to allow partial matches within words
+  partial_match: true
+
+# Workflow Execution Configuration
+workflow:
+  # Maximum number of retries for failed operations
+  max_retries: 3
+  
+  # Delay between retries (seconds)
+  retry_delay: 1.0
+  
+  # Whether to run agents in parallel by default
+  parallel_execution: true
+  
+  # Timeout per agent execution (seconds)
+  timeout_per_agent: 60
+  
+  # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  log_level: "DEBUG"
+
+# LLM Model Configurations
+llm_configs:
+  openai:
+    # API key (not recommended to store here in production)
+    api_key: "{st.secrets.get('OPENAI_API_KEY', '')}"
+    
+    # Name for the agent
+    name: "openai"
+    
+    # Model to use (gpt-4, gpt-3.5-turbo, etc.)
+    model: "gpt-4o"
+    
+    # Maximum tokens per response
+    max_tokens: 2000
+    
+    # Temperature for response generation (0.0 to 1.0)
+    temperature: 1.0
+    
+    # Request timeout (seconds)
+    timeout: 30
+  
+  perplexity:
+    # API key for Perplexity (new key)
+    api_key: "{st.secrets.get('PERPLEXITY_API_KEY', '')}"
+    # Name for the agent
+    name: "perplexity"
+    # Perplexity model (working model found)
+    model: "sonar"
+    # Maximum tokens per response
+    max_tokens: 2000
+    # Temperature for response generation
+    temperature: 1.0
+    # Request timeout (seconds)
+    timeout: 30
+  
+  gemini:
+    # API key for Gemini (you'll need to add your Gemini API key here)
+    api_key: "{st.secrets.get('GEMINI_API_KEY', '')}"
+    # Name for the agent
+    name: "gemini"
+    # Gemini model
+    model: "gemini-pro"
+    # Maximum tokens per response
+    max_tokens: 1000
+    # Temperature for response generation
+    temperature: 0.1
+    # Request timeout (seconds)
+    timeout: 30
+
+  serpapi:
+    # API key for SerpAPI (web search)
+    api_key: ""
+    # Name for the agent
+    name: "serpapi"
+    # Search engine to use
+    search_engine: "google"
+    # Number of results to fetch
+    num_results: 10
+    # Request timeout (seconds)
+    timeout: 30
+
+# Stage 2 Features (Future Enhancement Preparation)
+stage2:
+  # Enable ranking detection
+  enable_ranking_detection: true
+  
+  # Keywords that indicate ranking/positioning
+  ranking_keywords:
+    - "first"
+    - "top"
+    - "best"
+    - "leading"
+    - "number one"
+    - "#1"
+    - "premier"
+    - "foremost"
+  
+  # Enable cost tracking
+  enable_cost_tracking: true
+  
+  # Enable detailed analytics
+  enable_analytics: true
+
+# Sample Queries for Testing
+sample_queries:
+  - "best data analytics companies 2024"
+  - "top business intelligence tools"
+  - "leading data visualization software"
+  - "enterprise analytics platforms"
+"""
+    return config_content
+
+def save_credentials_from_secrets():
+    """Save Google service account credentials from Streamlit secrets."""
+    credentials_json = st.secrets.get('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS', '')
+    if credentials_json:
+        try:
+            # Parse the JSON string and save to file
+            credentials_data = json.loads(credentials_json)
+            with open('credentials.json', 'w') as f:
+                json.dump(credentials_data, f, indent=2)
+            return True
+        except Exception as e:
+            st.error(f"Failed to save credentials: {str(e)}")
+            return False
+    return False
+
 @st.cache_resource
 def initialize_api():
     """Initialize the brand monitoring API."""
     try:
-        api = EnhancedBrandMonitoringAPI("config.yaml")
-        return api
+        # Check if we have Streamlit secrets configured
+        secrets_check = check_streamlit_secrets()
+        
+        if secrets_check["all_configured"]:
+            # Create config from secrets
+            config_content = create_config_from_secrets()
+            with open('config.yaml', 'w') as f:
+                f.write(config_content)
+            
+            # Save credentials
+            if not save_credentials_from_secrets():
+                st.error("Failed to save Google service account credentials")
+                return None
+            
+            api = EnhancedBrandMonitoringAPI("config.yaml")
+            return api
+        else:
+            # Use existing config.yaml if no secrets
+            if os.path.exists("config.yaml"):
+                api = EnhancedBrandMonitoringAPI("config.yaml")
+                return api
+            else:
+                st.error("No configuration found. Please set up Streamlit secrets or create config.yaml")
+                return None
+                
     except Exception as e:
         st.error(f"Failed to create API instance: {str(e)}")
         return None
@@ -122,9 +325,21 @@ def main():
     st.markdown('<h1 class="main-header">🔍 DataTobiz Brand Monitoring System</h1>', unsafe_allow_html=True)
     st.markdown("### Stage 2 - Multi-Agent Orchestration with Advanced Analytics")
     
+    # Check Streamlit secrets configuration
+    secrets_check = check_streamlit_secrets()
+    
     # Sidebar
     with st.sidebar:
         st.header("🎛️ System Controls")
+        
+        # Display secrets status
+        st.subheader("🔐 Configuration Status")
+        if secrets_check["all_configured"]:
+            st.success("✅ All secrets configured")
+        else:
+            st.error("❌ Missing secrets")
+            st.write("Missing:", ", ".join(secrets_check["missing_secrets"]))
+            st.info("Please configure Streamlit secrets for full functionality")
         
         # Initialize button
         if st.button("🚀 Initialize System", type="primary"):
@@ -147,6 +362,30 @@ def main():
             for agent in agents:
                 st.markdown(f'<span class="agent-status agent-online">✅ {agent}</span>', unsafe_allow_html=True)
         
+        # Google Sheets status
+        if st.session_state.api and st.session_state.initialized:
+            st.subheader("📊 Google Sheets Status")
+            try:
+                if st.session_state.api.workflow and st.session_state.api.workflow.storage_manager:
+                    # Test Google Sheets connection
+                    with st.spinner("Testing Google Sheets..."):
+                        try:
+                            # Try to get a small amount of data to test connection
+                            test_data = asyncio.run(
+                                st.session_state.api.workflow.storage_manager.get_enhanced_historical_data(
+                                    days_back=1, limit=1
+                                )
+                            )
+                            st.success("✅ Google Sheets Connected")
+                            if test_data:
+                                st.info(f"📊 {len(test_data)} records found")
+                        except Exception as e:
+                            st.error(f"❌ Google Sheets Error: {str(e)}")
+                else:
+                    st.warning("⚠️ Storage manager not available")
+            except Exception as e:
+                st.error(f"❌ Google Sheets Error: {str(e)}")
+        
         # Configuration
         st.subheader("⚙️ Configuration")
         if st.button("📋 View Config"):
@@ -155,7 +394,8 @@ def main():
                 st.json({
                     "target_brand": settings.brand.target_brand,
                     "stage2_features": settings.get_stage2_features(),
-                    "available_agents": settings.get_available_agents()
+                    "available_agents": settings.get_available_agents(),
+                    "google_sheets_id": settings.google_sheets.spreadsheet_id[:20] + "..." if settings.google_sheets.spreadsheet_id else "Not configured"
                 })
             except Exception as e:
                 st.error(f"Error loading config: {str(e)}")
@@ -498,7 +738,40 @@ def historical_data_tab():
         st.warning("Please initialize the system first.")
         return
     
+    # Google Sheets connection test
+    st.subheader("🔗 Google Sheets Connection Test")
+    
+    if st.button("🧪 Test Google Sheets Connection"):
+        with st.spinner("Testing Google Sheets connection..."):
+            try:
+                if st.session_state.api.workflow and st.session_state.api.workflow.storage_manager:
+                    # Test basic connection
+                    test_result = asyncio.run(
+                        st.session_state.api.workflow.storage_manager.test_connection()
+                    )
+                    
+                    if test_result.get("success"):
+                        st.success("✅ Google Sheets connection successful!")
+                        
+                        # Show connection details
+                        details = test_result.get("details", {})
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**Spreadsheet:** {details.get('spreadsheet_title', 'Unknown')}")
+                            st.write(f"**Worksheet:** {details.get('worksheet_title', 'Unknown')}")
+                        with col2:
+                            st.write(f"**Records:** {details.get('total_records', 0)}")
+                            st.write(f"**Columns:** {details.get('total_columns', 0)}")
+                    else:
+                        st.error(f"❌ Google Sheets connection failed: {test_result.get('error', 'Unknown error')}")
+                else:
+                    st.error("Storage manager not available.")
+                    
+            except Exception as e:
+                st.error(f"Error testing Google Sheets connection: {str(e)}")
+    
     # Data retrieval options
+    st.subheader("📊 Data Retrieval")
     col1, col2 = st.columns(2)
     
     with col1:
