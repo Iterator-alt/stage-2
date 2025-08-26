@@ -531,8 +531,37 @@ def main():
             config_content = create_config_from_secrets()
             
             # Always overwrite config.yaml with fresh content from secrets
+            st.info("📝 Writing config.yaml to disk...")
             with open('config.yaml', 'w') as f:
                 f.write(config_content)
+            st.success("✅ config.yaml created successfully with API keys from secrets")
+            
+            # Verify the file was written and show its content
+            st.info("🔍 Verifying config.yaml content...")
+            try:
+                with open('config.yaml', 'r') as f:
+                    written_content = f.read()
+                st.info(f"📄 Config file size: {len(written_content)} characters")
+                
+                # Check for specific content
+                if 'spreadsheet_id: "1u6xIltHLEO-cfrFwCNVFL2726nRwaAMD90aqAbZKjgQ"' in written_content:
+                    st.success("✅ Google Sheets spreadsheet ID found in config")
+                else:
+                    st.warning("⚠️ Google Sheets spreadsheet ID NOT found in config")
+                
+                # Check for API keys
+                if 'sk-proj-' in written_content:
+                    st.success("✅ OpenAI API key found in config")
+                else:
+                    st.warning("⚠️ OpenAI API key NOT found in config")
+
+                if 'pplx-' in written_content:
+                    st.success("✅ Perplexity API key found in config")
+                else:
+                    st.warning("⚠️ Perplexity API key NOT found in config")
+                    
+            except Exception as e:
+                st.error(f"❌ Error verifying config file: {str(e)}")
             
             # Save credentials
             save_credentials_from_secrets()
@@ -567,6 +596,32 @@ def main():
                     st.session_state.api = api
                     st.session_state.initialized = True
                     st.rerun()
+    
+    # Force refresh config button
+    if st.sidebar.button("🔄 Force Refresh Config"):
+        if not secrets_status["all_configured"]:
+            st.error("Please configure at least one LLM API key (OpenAI or Perplexity) first.")
+        else:
+            with st.spinner("Refreshing configuration..."):
+                try:
+                    # Clear session state
+                    st.session_state.config_generated = False
+                    
+                    # Generate config from secrets
+                    config_content = create_config_from_secrets()
+                    
+                    # Always overwrite config.yaml with fresh content from secrets
+                    with open('config.yaml', 'w') as f:
+                        f.write(config_content)
+                    
+                    # Save credentials
+                    save_credentials_from_secrets()
+                    
+                    st.session_state.config_generated = True
+                    st.success("✅ Configuration refreshed successfully!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Failed to refresh configuration: {str(e)}")
     
     # System status
     if "api" in st.session_state and st.session_state.api:
