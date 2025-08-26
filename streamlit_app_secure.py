@@ -267,94 +267,13 @@ def save_credentials_from_secrets():
 def initialize_system():
     """Initialize the brand monitoring system."""
     try:
-        # Debug: Show what secrets are available
-        st.info("🔍 Debug: Checking available secrets...")
-        st.info(f"OPENAI_API_KEY present: {bool(st.secrets.get('OPENAI_API_KEY', ''))}")
-        st.info(f"PERPLEXITY_API_KEY present: {bool(st.secrets.get('PERPLEXITY_API_KEY', ''))}")
-        st.info(f"GOOGLE_SHEETS_SPREADSHEET_ID present: {bool(st.secrets.get('GOOGLE_SHEETS_SPREADSHEET_ID', ''))}")
-        st.info(f"GOOGLE_SERVICE_ACCOUNT_CREDENTIALS present: {bool(st.secrets.get('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS', ''))}")
-        
-        # Create config from secrets
-        st.info("📝 Creating config.yaml from secrets...")
-        config_content = create_config_from_secrets()
-        
-        # Debug: Show key parts of the config
-        st.info("🔍 Debug: Config content preview...")
-        lines = config_content.split('\n')
-        for i, line in enumerate(lines):
-            if 'api_key:' in line or 'spreadsheet_id:' in line or 'credentials_file:' in line:
-                st.info(f"Line {i+1}: {line.strip()}")
-        
-        # Always overwrite config.yaml with fresh content from secrets
-        st.info("📝 Writing config.yaml to disk...")
-        with open('config.yaml', 'w') as f:
-            f.write(config_content)
-        st.success("✅ config.yaml created successfully with API keys from secrets")
-        
-        # Verify the file was written and show its content
-        st.info("🔍 Verifying config.yaml content...")
-        try:
-            with open('config.yaml', 'r') as f:
-                written_content = f.read()
-            st.info(f"📄 Config file size: {len(written_content)} characters")
-            
-            # Check for specific content
-            if 'spreadsheet_id: "1u6xIltHLEO-cfrFwCNVFL2726nRwaAMD90aqAbZKjgQ"' in written_content:
-                st.success("✅ Google Sheets spreadsheet ID found in written config")
-            else:
-                st.error("❌ Google Sheets spreadsheet ID NOT found in written config")
-                st.info("🔍 First 500 characters of config:")
-                st.code(written_content[:500])
-            
-            if 'credentials_file: "credentials.json"' in written_content:
-                st.success("✅ Credentials file path found in written config")
-            else:
-                st.error("❌ Credentials file path NOT found in written config")
-        except Exception as e:
-            st.error(f"❌ Error reading written config file: {str(e)}")
-        
-        # Verify the file was written correctly
-        try:
-            with open('config.yaml', 'r') as f:
-                written_content = f.read()
-            st.info(f"📄 Config file size: {len(written_content)} characters")
-            
-            # Check for API keys
-            if 'sk-proj-' in written_content:
-                st.success("✅ OpenAI API key found in config")
-            else:
-                st.warning("⚠️ OpenAI API key NOT found in config")
-                
-            if 'pplx-' in written_content:
-                st.success("✅ Perplexity API key found in config")
-            else:
-                st.warning("⚠️ Perplexity API key NOT found in config")
-                
-            if 'spreadsheet_id:' in written_content:
-                st.success("✅ Google Sheets config found in file")
-            else:
-                st.warning("⚠️ Google Sheets config NOT found in file")
-        except Exception as e:
-            st.error(f"❌ Error reading config file: {str(e)}")
-        
-        # Save credentials (make this optional)
-        st.info("🔐 Processing Google Sheets credentials...")
-        credentials_saved = save_credentials_from_secrets()
-        if not credentials_saved:
-            st.warning("⚠️ Google Sheets credentials not saved - storage will be disabled")
-        else:
-            st.success("✅ Google Sheets credentials processed successfully")
-        
-        # Initialize API
+        # Initialize API (config should already be generated)
         st.info("🚀 Initializing EnhancedBrandMonitoringAPI...")
         api = EnhancedBrandMonitoringAPI('config.yaml')
         success = asyncio.run(api.initialize())
         
         if success:
-            if credentials_saved:
-                st.success("✅ System initialized successfully with Google Sheets!")
-            else:
-                st.success("✅ System initialized successfully! (Google Sheets disabled)")
+            st.success("✅ System initialized successfully!")
             return api
         else:
             st.error("❌ Failed to initialize system")
@@ -603,6 +522,26 @@ def main():
     
     # Check secrets configuration
     secrets_status = check_streamlit_secrets()
+    
+    # Auto-generate config from secrets if core secrets are configured
+    if secrets_status["all_configured"] and not st.session_state.get("config_generated", False):
+        st.info("🔄 Auto-generating configuration from Streamlit secrets...")
+        try:
+            # Generate config from secrets
+            config_content = create_config_from_secrets()
+            
+            # Always overwrite config.yaml with fresh content from secrets
+            with open('config.yaml', 'w') as f:
+                f.write(config_content)
+            
+            # Save credentials
+            save_credentials_from_secrets()
+            
+            st.session_state.config_generated = True
+            st.success("✅ Configuration generated successfully from Streamlit secrets!")
+            st.rerun()
+        except Exception as e:
+            st.error(f"❌ Failed to generate configuration: {str(e)}")
     
     # Sidebar
     st.sidebar.title("⚙️ System Controls")
