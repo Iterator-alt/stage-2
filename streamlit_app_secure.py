@@ -63,7 +63,7 @@ llm_configs:
   openai:
     name: "openai"
     api_key: "{st.secrets.get('OPENAI_API_KEY', '')}"
-    model: "gpt-3.5-turbo"
+            model: "gpt-5"  # TEMPORARY: Testing GPT-5
     max_tokens: 1000
     temperature: 0.1
     timeout: 30

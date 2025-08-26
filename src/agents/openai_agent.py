@@ -35,7 +35,7 @@ class OpenAIAgent(BaseAgent):
         )
         
         # Model configuration
-        self.model = config.model or "gpt-4"
+        self.model = config.model or "gpt-5"  # TEMPORARY: Testing GPT-5
         self.max_tokens = config.max_tokens
         self.temperature = config.temperature
         
@@ -75,18 +75,28 @@ class OpenAIAgent(BaseAgent):
             
             logger.debug(f"Making OpenAI request for query: {query}")
             
-            response = await self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-                top_p=1.0,
-                frequency_penalty=0.0,
-                presence_penalty=0.0,
-                timeout=self.config.timeout
-            )
+            # GPT-5 has different parameter requirements
+            if self.model == "gpt-5":
+                response = await self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ],
+                    timeout=self.config.timeout
+                )
+            else:
+                response = await self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=self.max_tokens,
+                    temperature=self.temperature,
+                    top_p=1.0,
+                    frequency_penalty=0.0,
+                    presence_penalty=0.0,
+                    timeout=self.config.timeout
+                )
             
             logger.debug(f"OpenAI response received: {response}")
             
@@ -99,17 +109,28 @@ class OpenAIAgent(BaseAgent):
             if not content or content.strip() == "":
                 # Try a simpler prompt if the first one returns empty
                 logger.warning("Empty content received, trying simpler prompt")
-                simple_response = await self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": f"List the top companies for: {query}"
-                        }
-                    ],
-                    max_tokens=500,
-                    temperature=0.1
-                )
+                if self.model == "gpt-5":
+                    simple_response = await self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": f"List the top companies for: {query}"
+                            }
+                        ]
+                    )
+                else:
+                    simple_response = await self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": f"List the top companies for: {query}"
+                            }
+                        ],
+                        max_tokens=500,
+                        temperature=0.1
+                    )
                 
                 if simple_response.choices and simple_response.choices[0].message.content:
                     content = simple_response.choices[0].message.content
@@ -175,14 +196,22 @@ class OpenAIAgent(BaseAgent):
             True if connection is successful, False otherwise
         """
         try:
-            response = await self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "user", "content": "Hello, this is a connection test."}
-                ],
-                max_tokens=10,
-                temperature=0
-            )
+            if self.model == "gpt-5":
+                response = await self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "user", "content": "Hello, this is a connection test."}
+                    ]
+                )
+            else:
+                response = await self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "user", "content": "Hello, this is a connection test."}
+                    ],
+                    max_tokens=10,
+                    temperature=0
+                )
             
             return bool(response.choices and response.choices[0].message.content)
             
@@ -206,7 +235,7 @@ class OpenAIAgent(BaseAgent):
         pass
 
 # Utility function for creating OpenAI agents
-def create_openai_agent(name: str = "openai", api_key: str = None, model: str = "gpt-4") -> OpenAIAgent:
+def create_openai_agent(name: str = "openai", api_key: str = None, model: str = "gpt-5") -> OpenAIAgent:  # TEMPORARY: Testing GPT-5
     """
     Utility function to create an OpenAI agent with default configuration.
     
