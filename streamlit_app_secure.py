@@ -68,6 +68,7 @@ def check_streamlit_secrets():
 
 def create_config_from_secrets():
     """Create config.yaml content from Streamlit secrets."""
+    import os
     config_content = f"""
 # Enhanced DataTobiz Brand Monitoring Configuration (Stage 2)
 # Generated from Streamlit secrets
@@ -102,7 +103,7 @@ llm_configs:
 google_sheets:
   spreadsheet_id: "{st.secrets.get('GOOGLE_SHEETS_SPREADSHEET_ID', '')}"
   worksheet_name: "Brand_Monitoring_New"
-  credentials_file: "credentials.json"
+  credentials_file: "{os.path.join(os.getcwd(), 'credentials.json')}"
   auto_setup_headers: true
   batch_size: 100
   enable_validation: true
@@ -223,12 +224,32 @@ def save_credentials_from_secrets():
                 st.error(f"Missing required fields in credentials: {missing_fields}")
                 return False
             
-            # Save to file
-            with open('credentials.json', 'w') as f:
+            # Save to file in the current working directory
+            import os
+            credentials_path = os.path.join(os.getcwd(), 'credentials.json')
+            with open(credentials_path, 'w') as f:
+                json.dump(credentials_data, f, indent=2)
+            
+            # Also save to src directory for backend access
+            src_credentials_path = os.path.join(os.getcwd(), 'src', 'credentials.json')
+            with open(src_credentials_path, 'w') as f:
                 json.dump(credentials_data, f, indent=2)
             
             st.success("✅ Google Sheets credentials saved successfully")
-            st.info(f"📁 Credentials saved to: credentials.json")
+            st.info(f"📁 Credentials saved to: {credentials_path}")
+            st.info(f"📁 Also saved to: {src_credentials_path}")
+            
+            # Verify files exist
+            if os.path.exists(credentials_path):
+                st.success(f"✅ Main credentials file verified: {credentials_path}")
+            else:
+                st.error(f"❌ Main credentials file not found: {credentials_path}")
+                
+            if os.path.exists(src_credentials_path):
+                st.success(f"✅ Src credentials file verified: {src_credentials_path}")
+            else:
+                st.error(f"❌ Src credentials file not found: {src_credentials_path}")
+            
             return True
             
         except json.JSONDecodeError as e:
