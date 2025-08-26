@@ -245,17 +245,50 @@ def save_credentials_from_secrets():
 def initialize_system():
     """Initialize the brand monitoring system."""
     try:
+        # Debug: Show what secrets are available
+        st.info("🔍 Debug: Checking available secrets...")
+        st.info(f"OPENAI_API_KEY present: {bool(st.secrets.get('OPENAI_API_KEY', ''))}")
+        st.info(f"PERPLEXITY_API_KEY present: {bool(st.secrets.get('PERPLEXITY_API_KEY', ''))}")
+        st.info(f"GOOGLE_SHEETS_SPREADSHEET_ID present: {bool(st.secrets.get('GOOGLE_SHEETS_SPREADSHEET_ID', ''))}")
+        st.info(f"GOOGLE_SERVICE_ACCOUNT_CREDENTIALS present: {bool(st.secrets.get('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS', ''))}")
+        
         # Create config from secrets
+        st.info("📝 Creating config.yaml from secrets...")
         config_content = create_config_from_secrets()
+        
+        # Debug: Show key parts of the config
+        st.info("🔍 Debug: Config content preview...")
+        lines = config_content.split('\n')
+        for i, line in enumerate(lines):
+            if 'spreadsheet_id:' in line or 'credentials_file:' in line:
+                st.info(f"Line {i+1}: {line.strip()}")
+        
         with open('config.yaml', 'w') as f:
             f.write(config_content)
+        st.success("✅ config.yaml created successfully")
+        
+        # Verify the file was written correctly
+        try:
+            with open('config.yaml', 'r') as f:
+                written_content = f.read()
+            st.info(f"📄 Config file size: {len(written_content)} characters")
+            if 'spreadsheet_id:' in written_content:
+                st.success("✅ Google Sheets config found in file")
+            else:
+                st.warning("⚠️ Google Sheets config NOT found in file")
+        except Exception as e:
+            st.error(f"❌ Error reading config file: {str(e)}")
         
         # Save credentials (make this optional)
+        st.info("🔐 Processing Google Sheets credentials...")
         credentials_saved = save_credentials_from_secrets()
         if not credentials_saved:
             st.warning("⚠️ Google Sheets credentials not saved - storage will be disabled")
+        else:
+            st.success("✅ Google Sheets credentials processed successfully")
         
         # Initialize API
+        st.info("🚀 Initializing EnhancedBrandMonitoringAPI...")
         api = EnhancedBrandMonitoringAPI('config.yaml')
         success = asyncio.run(api.initialize())
         
@@ -271,6 +304,9 @@ def initialize_system():
             
     except Exception as e:
         st.error(f"❌ Initialization error: {str(e)}")
+        st.error(f"Error type: {type(e).__name__}")
+        import traceback
+        st.error(f"Traceback: {traceback.format_exc()}")
         return None
 
 def display_system_status(api):
