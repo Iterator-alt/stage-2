@@ -323,7 +323,16 @@ class Settings(BaseSettings):
     def _process_google_sheets_config(self, config_data: Dict[str, Any]) -> GoogleSheetsConfig:
         """Process Google Sheets configuration."""
         yaml_gs = config_data.get("google_sheets", {}) or {}
+        
+        # Debug logging
+        from src.utils.logger import get_logger
+        logger = get_logger(__name__)
+        logger.info(f"🔍 Debug: config_data keys: {list(config_data.keys())}")
+        logger.info(f"🔍 Debug: yaml_gs content: {yaml_gs}")
+        logger.info(f"🔍 Debug: yaml_gs.get('spreadsheet_id'): {yaml_gs.get('spreadsheet_id')}")
+        
         spreadsheet_id = os.getenv("GOOGLE_SPREADSHEET_ID") or yaml_gs.get("spreadsheet_id", "")
+        logger.info(f"🔍 Debug: Final spreadsheet_id: '{spreadsheet_id}'")
         
         return GoogleSheetsConfig(
             spreadsheet_id=spreadsheet_id,

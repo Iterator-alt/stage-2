@@ -145,6 +145,11 @@ class EnhancedBrandMonitoringWorkflow:
         try:
             gs_cfg = self.config.google_sheets
             
+            # Debug logging
+            logger.info(f"🔍 Debug: Google Sheets config - spreadsheet_id: '{gs_cfg.spreadsheet_id}'")
+            logger.info(f"🔍 Debug: Google Sheets config - credentials_file: '{gs_cfg.credentials_file}'")
+            logger.info(f"🔍 Debug: Google Sheets config - worksheet_name: '{gs_cfg.worksheet_name}'")
+            
             # Check for credentials file in multiple locations
             credentials_found = False
             credentials_path = gs_cfg.credentials_file
@@ -164,6 +169,9 @@ class EnhancedBrandMonitoringWorkflow:
                     credentials_found = True
                     logger.info(f"Found credentials file at: {path}")
                     break
+            
+            logger.info(f"🔍 Debug: credentials_found = {credentials_found}")
+            logger.info(f"🔍 Debug: spreadsheet_id check = {bool(gs_cfg.spreadsheet_id)}")
             
             if not gs_cfg.spreadsheet_id or not credentials_found:
                 logger.warning("Google Sheets not configured or credentials missing; storage disabled")
