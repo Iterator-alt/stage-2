@@ -144,10 +144,35 @@ class EnhancedBrandMonitoringWorkflow:
         """Initialize enhanced Google Sheets storage manager."""
         try:
             gs_cfg = self.config.google_sheets
-            if not gs_cfg.spreadsheet_id or not os.path.exists(gs_cfg.credentials_file):
+            
+            # Check for credentials file in multiple locations
+            credentials_found = False
+            credentials_path = gs_cfg.credentials_file
+            
+            # Try multiple possible locations
+            possible_paths = [
+                gs_cfg.credentials_file,  # Original path
+                "credentials.json",  # Current directory
+                "src/credentials.json",  # Src directory
+                os.path.join(os.getcwd(), "credentials.json"),  # Absolute path
+                os.path.join(os.getcwd(), "src", "credentials.json")  # Absolute src path
+            ]
+            
+            for path in possible_paths:
+                if os.path.exists(path):
+                    credentials_path = path
+                    credentials_found = True
+                    logger.info(f"Found credentials file at: {path}")
+                    break
+            
+            if not gs_cfg.spreadsheet_id or not credentials_found:
                 logger.warning("Google Sheets not configured or credentials missing; storage disabled")
+                logger.info(f"Tried paths: {possible_paths}")
                 self.storage_manager = None
                 return True
+            
+            # Update the config with the found path
+            gs_cfg.credentials_file = credentials_path
             
             self.storage_manager = EnhancedGoogleSheetsManager(self.config.google_sheets)
             ok = await self.storage_manager.initialize()

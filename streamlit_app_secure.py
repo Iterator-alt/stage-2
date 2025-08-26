@@ -103,7 +103,7 @@ llm_configs:
 google_sheets:
   spreadsheet_id: "{st.secrets.get('GOOGLE_SHEETS_SPREADSHEET_ID', '')}"
   worksheet_name: "Brand_Monitoring_New"
-  credentials_file: "{os.path.join(os.getcwd(), 'credentials.json')}"
+  credentials_file: "credentials.json"
   auto_setup_headers: true
   batch_size: 100
   enable_validation: true
@@ -224,14 +224,14 @@ def save_credentials_from_secrets():
                 st.error(f"Missing required fields in credentials: {missing_fields}")
                 return False
             
-            # Save to file in the current working directory
+            # Save to file in the current working directory (where backend expects it)
             import os
-            credentials_path = os.path.join(os.getcwd(), 'credentials.json')
+            credentials_path = 'credentials.json'  # Relative path in current directory
             with open(credentials_path, 'w') as f:
                 json.dump(credentials_data, f, indent=2)
             
             # Also save to src directory for backend access
-            src_credentials_path = os.path.join(os.getcwd(), 'src', 'credentials.json')
+            src_credentials_path = os.path.join('src', 'credentials.json')
             with open(src_credentials_path, 'w') as f:
                 json.dump(credentials_data, f, indent=2)
             
