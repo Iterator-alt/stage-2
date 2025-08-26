@@ -34,22 +34,36 @@ st.set_page_config(
 
 def check_streamlit_secrets():
     """Check if all required Streamlit secrets are configured."""
-    required_secrets = [
+    # Core required secrets (at least one LLM API key)
+    core_secrets = [
         "OPENAI_API_KEY",
-        "PERPLEXITY_API_KEY", 
+        "PERPLEXITY_API_KEY"
+    ]
+    
+    # Optional secrets
+    optional_secrets = [
         "GEMINI_API_KEY",
         "GOOGLE_SHEETS_SPREADSHEET_ID",
         "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS"
     ]
     
-    missing_secrets = []
-    for secret in required_secrets:
-        if secret not in st.secrets or not st.secrets[secret]:
-            missing_secrets.append(secret)
+    # Check if at least one core secret is configured
+    core_configured = any(
+        secret in st.secrets and st.secrets[secret] and st.secrets[secret] != "YOUR_GEMINI_API_KEY_HERE"
+        for secret in core_secrets
+    )
+    
+    # Check missing optional secrets
+    missing_optional = []
+    for secret in optional_secrets:
+        if secret not in st.secrets or not st.secrets[secret] or st.secrets[secret] == "YOUR_GEMINI_API_KEY_HERE":
+            missing_optional.append(secret)
     
     return {
-        "all_configured": len(missing_secrets) == 0,
-        "missing_secrets": missing_secrets
+        "all_configured": core_configured,
+        "missing_core": [] if core_configured else core_secrets,
+        "missing_optional": missing_optional,
+        "google_sheets_configured": "GOOGLE_SHEETS_SPREADSHEET_ID" in st.secrets and st.secrets["GOOGLE_SHEETS_SPREADSHEET_ID"] and "GOOGLE_SERVICE_ACCOUNT_CREDENTIALS" in st.secrets and st.secrets["GOOGLE_SERVICE_ACCOUNT_CREDENTIALS"]
     }
 
 def create_config_from_secrets():
@@ -78,7 +92,7 @@ llm_configs:
 
   gemini:
     name: "gemini"
-    api_key: "{st.secrets.get('GEMINI_API_KEY', '')}"
+    api_key: "{st.secrets.get('GEMINI_API_KEY', '') if st.secrets.get('GEMINI_API_KEY', '') != 'YOUR_GEMINI_API_KEY_HERE' else ''}"
     model: "gemini-pro"
     max_tokens: 1000
     temperature: 0.1
@@ -467,10 +481,20 @@ def main():
     # Sidebar
     st.sidebar.title("⚙️ System Controls")
     
+    # Display secrets status
+    if secrets_status["all_configured"]:
+        st.sidebar.success("✅ Core secrets configured")
+        if secrets_status["google_sheets_configured"]:
+            st.sidebar.success("✅ Google Sheets configured")
+        else:
+            st.sidebar.warning("⚠️ Google Sheets not configured")
+    else:
+        st.sidebar.error("❌ Core secrets missing")
+    
     # Initialize system button
     if st.sidebar.button("🚀 Initialize System", type="primary"):
         if not secrets_status["all_configured"]:
-            st.error("Please configure all required secrets first.")
+            st.error("Please configure at least one LLM API key (OpenAI or Perplexity) first.")
         else:
             with st.spinner("Initializing system..."):
                 api = initialize_system()
@@ -502,16 +526,22 @@ def main():
     
     # Main content area
     if not secrets_status["all_configured"]:
-        st.error("⚠️ Please configure all required secrets in Streamlit Cloud before using the application.")
+        st.error("⚠️ Please configure at least one LLM API key (OpenAI or Perplexity) in Streamlit Cloud before using the application.")
         st.info("""
         **Required Secrets:**
-        - `OPENAI_API_KEY`: Your OpenAI API key
-        - `PERPLEXITY_API_KEY`: Your Perplexity API key  
-        - `GEMINI_API_KEY`: Your Google Gemini API key
-        - `GOOGLE_SHEETS_SPREADSHEET_ID`: Your Google Sheets spreadsheet ID
-        - `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS`: Your Google service account JSON credentials
+        - `OPENAI_API_KEY`: Your OpenAI API key (required)
+        - `PERPLEXITY_API_KEY`: Your Perplexity API key (required)
+        
+        **Optional Secrets:**
+        - `GEMINI_API_KEY`: Your Google Gemini API key (optional)
+        - `GOOGLE_SHEETS_SPREADSHEET_ID`: Your Google Sheets spreadsheet ID (optional)
+        - `GOOGLE_SERVICE_ACCOUNT_CREDENTIALS`: Your Google service account JSON credentials (optional)
         """)
         return
+    
+    # Show optional secrets status
+    if secrets_status["missing_optional"]:
+        st.info(f"ℹ️ Optional features not configured: {', '.join(secrets_status['missing_optional'])}")
     
     if not st.session_state.get("initialized", False):
         st.warning("⚠️ Please initialize the system first using the sidebar button.")
