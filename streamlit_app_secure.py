@@ -66,46 +66,16 @@ def create_config_from_secrets():
         st.info("Please configure at least one API key in your Streamlit Cloud secrets.")
         return None
     
-    config_content = f"""
-# Enhanced DataTobiz Brand Monitoring Configuration (Stage 2)
-# Generated from Streamlit secrets
-
-# LLM Configurations
-llm_configs:
-  openai:
-    name: "openai"
-    api_key: "{openai_key}"
-    model: "gpt-4o"
-    max_tokens: 2000
-    temperature: 1.0
-    timeout: 30
-
-  perplexity:
-    name: "perplexity"
-    api_key: "{perplexity_key}"
-    model: "sonar"
-    max_tokens: 2000
-    temperature: 1.0
-    timeout: 30
-
-  gemini:
-    name: "gemini"
-    api_key: "{gemini_key}"
-    model: "gemini-pro"
-    max_tokens: 1000
-    temperature: 0.1
-    timeout: 30
+    config_content = f"""# DataTObiz Brand Monitoring System Configuration
+# ==============================================
 
 # Google Sheets Configuration
 google_sheets:
   spreadsheet_id: "{st.secrets.get('GOOGLE_SHEETS_SPREADSHEET_ID', '')}"
   worksheet_name: "Brand_Monitoring_New"
   credentials_file: "credentials.json"
-  auto_setup_headers: true
-  batch_size: 100
-  enable_validation: true
 
-# Brand Configuration
+# Brand Detection Configuration
 brand:
   target_brand: "DataTobiz"
   brand_variations:
@@ -114,86 +84,74 @@ brand:
     - "data tobiz"
     - "DATATOBIZ"
     - "DataToBiz"
-    - "Data-Tobiz"
-    - "datatobiz.com"
   case_sensitive: false
   partial_match: true
 
-# Workflow Configuration
+# Workflow Execution Configuration
 workflow:
   max_retries: 3
   retry_delay: 1.0
   parallel_execution: true
   timeout_per_agent: 60
-  log_level: "INFO"
+  log_level: "DEBUG"
 
-# Stage 2 Configuration
+# LLM Model Configurations
+llm_configs:
+  openai:
+    api_key: "{openai_key}"
+    name: "openai"
+    model: "gpt-4o"
+    max_tokens: 2000
+    temperature: 1.0
+    timeout: 30
+  
+  perplexity:
+    api_key: "{perplexity_key}"
+    name: "perplexity"
+    model: "sonar"
+    max_tokens: 2000
+    temperature: 1.0
+    timeout: 30
+  
+  gemini:
+    api_key: "{gemini_key}"
+    name: "gemini"
+    model: "gemini-pro"
+    max_tokens: 1000
+    temperature: 0.1
+    timeout: 30
+
+  serpapi:
+    api_key: ""
+    name: "serpapi"
+    search_engine: "google"
+    num_results: 10
+    timeout: 30
+
+# Stage 2 Features
 stage2:
   enable_ranking_detection: true
   enable_cost_tracking: true
   enable_analytics: true
-  ranking_detection:
-    max_position: 20
-    min_confidence: 0.6
-    enable_ordinal_detection: true
-    enable_list_detection: true
-    enable_keyword_detection: true
-    enable_numeric_detection: true
+  ranking_keywords:
+    - "first"
+    - "top"
+    - "best"
+    - "leading"
+    - "number one"
+    - "#1"
+    - "premier"
+    - "foremost"
 
-# Enhanced Brand Configuration
-enhanced_brand:
-  context_analysis:
-    context_window: 200
-    enable_sentiment_analysis: false
-    positive_keywords:
-      - "excellent"
-      - "outstanding"
-      - "innovative"
-      - "reliable"
-      - "powerful"
-      - "comprehensive"
-      - "award-winning"
-      - "recognized"
-      - "trusted"
-      - "proven"
-    negative_keywords:
-      - "poor"
-      - "disappointing"
-      - "limited"
-      - "lacking"
-      - "outdated"
-      - "problematic"
-  structure_detection:
-    detect_in_lists: true
-    detect_near_headings: true
-    detect_comparisons: true
-
-# Analytics Configuration
-analytics:
-  enabled: true
-  metrics:
-    - "detection_rate"
-    - "ranking_positions"
-    - "confidence_scores"
-    - "execution_times"
-    - "cost_tracking"
-    - "agent_performance"
-  daily_reports: false
-  weekly_summaries: true
-  trend_analysis: true
-  retention_days: 365
-
-# Security Configuration
-security:
-  validate_api_keys: true
-  enable_rate_limiting: true
-  rate_limits:
-    openai: 50
-    perplexity: 20
-    gemini: 60
-  log_requests: false
-  mask_api_keys: true
+# Sample Queries for Testing
+sample_queries:
+  - "best data analytics companies 2024"
+  - "top business intelligence tools"
+  - "leading data visualization software"
+  - "enterprise analytics platforms"
 """
+    
+    return config_content
     return config_content
 
 def save_credentials_from_secrets():
@@ -479,13 +437,38 @@ def main():
     st.title("🔍 DataTobiz Brand Monitoring System - Stage 2")
     st.markdown("Enhanced multi-agent brand monitoring with ranking detection and analytics")
     
+    # Initialize session state
+    if 'api' not in st.session_state:
+        st.session_state.api = None
+    if 'initialized' not in st.session_state:
+        st.session_state.initialized = False
+    
     # Check secrets configuration
     secrets_status = check_streamlit_secrets()
+    
+    # Auto-initialize if secrets are configured and not already initialized
+    if secrets_status["all_configured"] and not st.session_state.initialized:
+        with st.spinner("🔄 Auto-initializing system..."):
+            api = initialize_system()
+            if api:
+                st.session_state.api = api
+                st.session_state.initialized = True
+                st.success("✅ System auto-initialized successfully!")
+            else:
+                st.error("❌ Auto-initialization failed!")
     
     # Sidebar
     st.sidebar.title("⚙️ System Controls")
     
-    # Initialize system button
+    # Display secrets status
+    st.sidebar.subheader("🔐 Configuration Status")
+    if secrets_status["all_configured"]:
+        st.sidebar.success("✅ All secrets configured")
+    else:
+        st.sidebar.error("❌ Missing secrets")
+        st.sidebar.write("Missing:", ", ".join(secrets_status["missing_secrets"]))
+    
+    # Manual initialize button
     if st.sidebar.button("🚀 Initialize System", type="primary"):
         if not secrets_status["all_configured"]:
             st.error("Please configure all required secrets first.")
@@ -495,10 +478,11 @@ def main():
                 if api:
                     st.session_state.api = api
                     st.session_state.initialized = True
+                    st.success("✅ System initialized successfully!")
                     st.rerun()
     
     # System status
-    if "api" in st.session_state and st.session_state.api:
+    if st.session_state.initialized and st.session_state.api:
         st.sidebar.success("✅ System Initialized")
         
         # Navigation
