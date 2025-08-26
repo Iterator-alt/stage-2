@@ -77,7 +77,7 @@ llm_configs:
   openai:
     name: "openai"
     api_key: "{st.secrets.get('OPENAI_API_KEY', '')}"
-                         model: "gpt-4"
+    model: "gpt-4"
     max_tokens: 1000
     temperature: 0.1
     timeout: 30
@@ -201,6 +201,12 @@ security:
 def save_credentials_from_secrets():
     """Save Google service account credentials from Streamlit secrets."""
     credentials_json = st.secrets.get('GOOGLE_SERVICE_ACCOUNT_CREDENTIALS', '')
+    
+    # Debug logging
+    st.info(f"🔍 Checking Google Sheets credentials...")
+    st.info(f"Credentials present: {bool(credentials_json)}")
+    st.info(f"Credentials length: {len(str(credentials_json)) if credentials_json else 0}")
+    
     if credentials_json and credentials_json.strip():
         try:
             # Handle both string and dict formats
@@ -222,6 +228,7 @@ def save_credentials_from_secrets():
                 json.dump(credentials_data, f, indent=2)
             
             st.success("✅ Google Sheets credentials saved successfully")
+            st.info(f"📁 Credentials saved to: credentials.json")
             return True
             
         except json.JSONDecodeError as e:
@@ -232,6 +239,7 @@ def save_credentials_from_secrets():
             return False
     else:
         st.warning("No Google service account credentials found in secrets")
+        st.info("Please check your Streamlit secrets configuration")
         return False
 
 def initialize_system():
