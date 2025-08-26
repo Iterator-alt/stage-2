@@ -54,6 +54,18 @@ def check_streamlit_secrets():
 
 def create_config_from_secrets():
     """Create config.yaml content from Streamlit secrets."""
+    
+    # Get API keys with fallbacks
+    openai_key = st.secrets.get('OPENAI_API_KEY', '')
+    perplexity_key = st.secrets.get('PERPLEXITY_API_KEY', '')
+    gemini_key = st.secrets.get('GEMINI_API_KEY', '')
+    
+    # Check if we have at least one API key
+    if not any([openai_key, perplexity_key, gemini_key]):
+        st.error("❌ No API keys configured in Streamlit secrets!")
+        st.info("Please configure at least one API key in your Streamlit Cloud secrets.")
+        return None
+    
     config_content = f"""
 # Enhanced DataTobiz Brand Monitoring Configuration (Stage 2)
 # Generated from Streamlit secrets
@@ -62,23 +74,23 @@ def create_config_from_secrets():
 llm_configs:
   openai:
     name: "openai"
-    api_key: "{st.secrets.get('OPENAI_API_KEY', '')}"
-    model: "gpt-3.5-turbo"
-    max_tokens: 1000
-    temperature: 0.1
+    api_key: "{openai_key}"
+    model: "gpt-4o"
+    max_tokens: 2000
+    temperature: 1.0
     timeout: 30
 
   perplexity:
     name: "perplexity"
-    api_key: "{st.secrets.get('PERPLEXITY_API_KEY', '')}"
+    api_key: "{perplexity_key}"
     model: "sonar"
-    max_tokens: 1000
-    temperature: 0.1
+    max_tokens: 2000
+    temperature: 1.0
     timeout: 30
 
   gemini:
     name: "gemini"
-    api_key: "{st.secrets.get('GEMINI_API_KEY', '')}"
+    api_key: "{gemini_key}"
     model: "gemini-pro"
     max_tokens: 1000
     temperature: 0.1
@@ -204,13 +216,19 @@ def initialize_system():
     try:
         # Create config from secrets
         config_content = create_config_from_secrets()
+        
+        # Check if config creation failed
+        if config_content is None:
+            st.error("❌ Failed to create configuration from secrets")
+            return None
+        
         with open('config.yaml', 'w') as f:
             f.write(config_content)
         
         # Save credentials
         if not save_credentials_from_secrets():
-            st.error("Failed to save Google service account credentials")
-            return None
+            st.warning("⚠️ Failed to save Google service account credentials")
+            # Continue without Google Sheets for now
         
         # Initialize API
         api = EnhancedBrandMonitoringAPI('config.yaml')
