@@ -232,6 +232,7 @@ def save_credentials_from_secrets():
             
             # Also save to src directory for backend access
             src_credentials_path = os.path.join('src', 'credentials.json')
+            os.makedirs('src', exist_ok=True)  # Ensure src directory exists
             with open(src_credentials_path, 'w') as f:
                 json.dump(credentials_data, f, indent=2)
             
@@ -281,18 +282,31 @@ def initialize_system():
         st.info("🔍 Debug: Config content preview...")
         lines = config_content.split('\n')
         for i, line in enumerate(lines):
-            if 'spreadsheet_id:' in line or 'credentials_file:' in line:
+            if 'api_key:' in line or 'spreadsheet_id:' in line or 'credentials_file:' in line:
                 st.info(f"Line {i+1}: {line.strip()}")
         
+        # Always overwrite config.yaml with fresh content from secrets
         with open('config.yaml', 'w') as f:
             f.write(config_content)
-        st.success("✅ config.yaml created successfully")
+        st.success("✅ config.yaml created successfully with API keys from secrets")
         
         # Verify the file was written correctly
         try:
             with open('config.yaml', 'r') as f:
                 written_content = f.read()
             st.info(f"📄 Config file size: {len(written_content)} characters")
+            
+            # Check for API keys
+            if 'sk-proj-' in written_content:
+                st.success("✅ OpenAI API key found in config")
+            else:
+                st.warning("⚠️ OpenAI API key NOT found in config")
+                
+            if 'pplx-' in written_content:
+                st.success("✅ Perplexity API key found in config")
+            else:
+                st.warning("⚠️ Perplexity API key NOT found in config")
+                
             if 'spreadsheet_id:' in written_content:
                 st.success("✅ Google Sheets config found in file")
             else:
