@@ -286,9 +286,32 @@ def initialize_system():
                 st.info(f"Line {i+1}: {line.strip()}")
         
         # Always overwrite config.yaml with fresh content from secrets
+        st.info("📝 Writing config.yaml to disk...")
         with open('config.yaml', 'w') as f:
             f.write(config_content)
         st.success("✅ config.yaml created successfully with API keys from secrets")
+        
+        # Verify the file was written and show its content
+        st.info("🔍 Verifying config.yaml content...")
+        try:
+            with open('config.yaml', 'r') as f:
+                written_content = f.read()
+            st.info(f"📄 Config file size: {len(written_content)} characters")
+            
+            # Check for specific content
+            if 'spreadsheet_id: "1u6xIltHLEO-cfrFwCNVFL2726nRwaAMD90aqAbZKjgQ"' in written_content:
+                st.success("✅ Google Sheets spreadsheet ID found in written config")
+            else:
+                st.error("❌ Google Sheets spreadsheet ID NOT found in written config")
+                st.info("🔍 First 500 characters of config:")
+                st.code(written_content[:500])
+            
+            if 'credentials_file: "credentials.json"' in written_content:
+                st.success("✅ Credentials file path found in written config")
+            else:
+                st.error("❌ Credentials file path NOT found in written config")
+        except Exception as e:
+            st.error(f"❌ Error reading written config file: {str(e)}")
         
         # Verify the file was written correctly
         try:
