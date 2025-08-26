@@ -102,7 +102,12 @@ class EnhancedBrandMonitoringWorkflow:
             total_agents += 1
             try:
                 agent_config = self.config.llm_configs[agent_name]
-                agent = factory_func(agent_name, agent_config)
+                # Extract individual parameters from LLMConfig object
+                agent = factory_func(
+                    name=agent_name,
+                    api_key=agent_config.api_key,
+                    model=agent_config.model
+                )
                 
                 # Test health check for agents that support it
                 if hasattr(agent, 'test_connection'):
