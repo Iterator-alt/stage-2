@@ -32,7 +32,7 @@ class PerplexityAgent(BaseAgent):
         # Perplexity API configuration
         self.api_base = "https://api.perplexity.ai"
         self.api_key = config.api_key
-        self.model = config.model or "sonar-medium-online"
+        self.model = config.model or "sonar"
         self.max_tokens = config.max_tokens
         self.temperature = config.temperature
         
@@ -269,7 +269,7 @@ class PerplexityAgent(BaseAgent):
 def create_perplexity_agent(
     name: str = "perplexity", 
     api_key: str = None, 
-    model: str = "sonar-medium-online"
+    model: str = "sonar"
 ) -> PerplexityAgent:
     """
     Utility function to create a Perplexity agent with default configuration.

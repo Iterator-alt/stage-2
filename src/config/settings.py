@@ -266,7 +266,7 @@ class Settings(BaseSettings):
             merged_llm_configs["openai"] = {
                 "name": "openai",
                 "api_key": yaml_openai["api_key"],
-                "model": yaml_openai.get("model", "gpt-5"),  # TEMPORARY: Testing GPT-5
+                "model": yaml_openai.get("model", "gpt-4"),
                 "max_tokens": yaml_openai.get("max_tokens", 1000),
                 "temperature": yaml_openai.get("temperature", 0.1),
                 "timeout": yaml_openai.get("timeout", 30),

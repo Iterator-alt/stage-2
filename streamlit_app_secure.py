@@ -63,7 +63,7 @@ llm_configs:
   openai:
     name: "openai"
     api_key: "{st.secrets.get('OPENAI_API_KEY', '')}"
-            model: "gpt-5"  # TEMPORARY: Testing GPT-5
+                         model: "gpt-4"
     max_tokens: 1000
     temperature: 0.1
     timeout: 30
@@ -71,7 +71,7 @@ llm_configs:
   perplexity:
     name: "perplexity"
     api_key: "{st.secrets.get('PERPLEXITY_API_KEY', '')}"
-    model: "sonar-medium-online"
+    model: "sonar"
     max_tokens: 1000
     temperature: 0.1
     timeout: 30
