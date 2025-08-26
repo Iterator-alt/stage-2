@@ -71,7 +71,7 @@ llm_configs:
   perplexity:
     name: "perplexity"
     api_key: "{st.secrets.get('PERPLEXITY_API_KEY', '')}"
-    model: "sonar"
+    model: "sonar-medium-online"
     max_tokens: 1000
     temperature: 0.1
     timeout: 30
